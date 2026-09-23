@@ -6,15 +6,42 @@ grouped or filtered on, without having to invent a separate event type for every
 
 ## Shape
 
-- **Per event**: `events.labels`. Every recorded event carries its own set.
-- **Per type, as defaults**: `event_types.defaultLabels`. A new event starts with its type's
-  defaults, so one-tap recording (instant button, start/stop, voice) still produces labelled
-  events with no extra step. Defaults are copied at record time; changing a type's defaults later
-  does not rewrite past events.
-- Edit per-event labels from the ledger's **Adjust** sheet; edit defaults on the event type screen.
+```kotlin
+/** One occurrence. Labels describe this occurrence only. */
+data class Event(
+    val id: Long,
+    val eventTypeId: Long,
+    val startTime: Long,
+    val endTime: Long?,
+    val notes: String,
+    // ...
+    val labels: Map<String, String> = emptyMap(),        // events.labels
+)
 
-Values are strings. Numeric *fields* in the InfluxDB sense (`reps=12`) can be written the same
-way; anything consuming them can parse the value as a number.
+/** A kind of event. Its defaults seed every new Event of this type. */
+data class EventType(
+    val id: Long,
+    val name: String,
+    // ...
+    val defaultLabels: Map<String, String> = emptyMap(), // event_types.defaultLabels
+)
+
+/** Recording copies the defaults in; later edits to the type don't rewrite past events. */
+fun labelsForNewEvent(type: EventType, given: Map<String, String>): Map<String, String> =
+    type.defaultLabels + given // given wins on a shared key
+
+/** The one text form: InfluxDB line-protocol tag set, e.g. "intensity=high,location=gym". */
+object EventLabels {
+    fun parse(text: String?): ParseResult          // Success(labels) | Failure(ParseError)
+    fun format(labels: Map<String, String>): String // keys sorted, `\,` `\=` `\\` escaped
+}
+```
+
+Because every type has defaults, one-tap recording (instant button, start/stop, voice) still
+produces labelled events with no extra step. You edit per-event labels in the ledger's
+**Adjust** sheet and defaults on the event type screen. Values are strings. Numeric *fields*
+in the InfluxDB sense (`reps=12`) are written the same way, and whatever reads them parses the
+value as a number.
 
 ## One syntax everywhere
 
