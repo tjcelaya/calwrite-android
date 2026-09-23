@@ -223,6 +223,13 @@
     <string name="ledger_adjust_start">Inicio</string>
     <string name="ledger_adjust_end">Fin</string>
     <string name="ledger_adjust_notes">Notas</string>
+    <string name="labels_hint">Etiquetas</string>
+    <string name="labels_helper">clave=valor, separadas por comas, p. ej. lugar=gimnasio,intensidad=alta</string>
+    <string name="labels_error_missing_equals">\u201c%1$s\u201d debe escribirse como clave=valor</string>
+    <string name="labels_error_empty_key">A \u201c%1$s\u201d le falta la clave</string>
+    <string name="labels_error_duplicate_key">La etiqueta \u201c%1$s\u201d aparece más de una vez</string>
+    <string name="event_type_default_labels_hint">Etiquetas predeterminadas (opcional)</string>
+    <string name="event_type_default_labels_helper">Cada evento nuevo de este tipo empieza con estas etiquetas; puedes cambiarlas en cada evento. clave=valor, separadas por comas.</string>
     <string name="ledger_adjust_save">Guardar cambios</string>
     <string name="ledger_adjust_end_before_start">La hora de fin debe ser posterior a la de inicio.</string>
     <string name="ledger_adjusted_message">%1$s actualizado</string>

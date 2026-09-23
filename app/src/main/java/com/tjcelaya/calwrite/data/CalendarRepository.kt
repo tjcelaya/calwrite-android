@@ -98,7 +98,8 @@ class CalendarRepository(private val context: Context) {
         startTime: Long,
         endTime: Long,
         notes: String?,
-        photoPath: String? = null
+        photoPath: String? = null,
+        labels: Map<String, String> = emptyMap()
     ): Long? = withContext(Dispatchers.IO) {
         val calendarId = getSelectedCalendarId() ?: return@withContext null
 
@@ -107,15 +108,7 @@ class CalendarRepository(private val context: Context) {
         }
 
         val title = eventType.name
-        val description = buildString {
-            if (!notes.isNullOrBlank()) {
-                append("Notes: $notes")
-            }
-            if (!eventType.description.isNullOrBlank()) {
-                if (isNotEmpty()) append("\n\n")
-                append("Event Type: ${eventType.description}")
-            }
-        }.takeIf { it.isNotBlank() }
+        val description = CalendarDescription.build(notes, eventType.description, labels)
 
         return@withContext CalendarUtils.insertEventToCalendar(
             context,
@@ -138,22 +131,15 @@ class CalendarRepository(private val context: Context) {
         startTime: Long,
         endTime: Long,
         notes: String?,
-        photoPath: String? = null
+        photoPath: String? = null,
+        labels: Map<String, String> = emptyMap()
     ): Boolean = withContext(Dispatchers.IO) {
         if (!hasCalendarPermissions()) {
             return@withContext false
         }
 
         val title = eventType.name
-        val description = buildString {
-            if (!notes.isNullOrBlank()) {
-                append("Notes: $notes")
-            }
-            if (!eventType.description.isNullOrBlank()) {
-                if (isNotEmpty()) append("\n\n")
-                append("Event Type: ${eventType.description}")
-            }
-        }.takeIf { it.isNotBlank() }
+        val description = CalendarDescription.build(notes, eventType.description, labels)
 
         return@withContext CalendarUtils.updateCalendarEvent(
             context,
@@ -197,7 +183,8 @@ class CalendarRepository(private val context: Context) {
                     event.startTime,
                     event.endTime ?: event.startTime, // Use startTime if endTime is null (ongoing event)
                     event.notes,
-                    event.photoPath
+                    event.photoPath,
+                    event.labels
                 )
 
                 if (calendarEventId != null) {

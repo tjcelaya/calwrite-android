@@ -36,7 +36,10 @@ data class Event(
     val endTime: Long? = null, // Null for ongoing events, same as startTime for instant events
     val notes: String = "", // Optional user notes for this specific event instance
     val photoPath: String? = null, // Optional path to photo attachment
-    val calendarEventId: Long? = null // CalendarContract event id once synced, null while unsynced
+    val calendarEventId: Long? = null, // CalendarContract event id once synced, null while unsynced
+    // Key/value labels for this occurrence (InfluxDB-tag style), seeded from the type's defaults.
+    // Stored in EventLabels text form; see EventLabels for the syntax.
+    val labels: Map<String, String> = emptyMap()
 ) {
     /**
      * @return true if this is an instant event (start == end)

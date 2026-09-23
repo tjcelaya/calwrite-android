@@ -223,6 +223,13 @@
     <string name="ledger_adjust_start">Start</string>
     <string name="ledger_adjust_end">End</string>
     <string name="ledger_adjust_notes">Notes</string>
+    <string name="labels_hint">Labels</string>
+    <string name="labels_helper">key=value, comma separated, e.g. location=gym,intensity=high</string>
+    <string name="labels_error_missing_equals">\u201c%1$s\u201d needs to be written as key=value</string>
+    <string name="labels_error_empty_key">\u201c%1$s\u201d is missing its key</string>
+    <string name="labels_error_duplicate_key">The label \u201c%1$s\u201d appears more than once</string>
+    <string name="event_type_default_labels_hint">Default labels (optional)</string>
+    <string name="event_type_default_labels_helper">Every new event of this type starts with these; you can change them per event. key=value, comma separated.</string>
     <string name="ledger_adjust_save">Save changes</string>
     <string name="ledger_adjust_end_before_start">The end time must be after the start time.</string>
     <string name="ledger_adjusted_message">Updated %1$s</string>

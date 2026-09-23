@@ -385,7 +385,8 @@ class TrackingViewModel(
                         eventType = modifiedEventType,
                         startTime = currentTime,
                         endTime = currentTime,
-                        notes = null
+                        notes = null,
+                        labels = eventType.defaultLabels
                     )
                     
                     // Delete the future event

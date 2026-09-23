@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AlbumConfig::class,
         FutureEvent::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -66,10 +66,20 @@ abstract class CalWriteDatabase : RoomDatabase() {
             }
         }
 
+        // Adds key/value labels (InfluxDB-tag style): per-event `labels`, and per-type
+        // `defaultLabels` that seed new events. Stored in EventLabels text form; '' is no labels.
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE events ADD COLUMN labels TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE event_types ADD COLUMN defaultLabels TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         // internal so migration tests can apply the same set the app ships with.
         internal val ALL_MIGRATIONS = arrayOf<Migration>(
             MIGRATION_8_9,
-            MIGRATION_9_10
+            MIGRATION_9_10,
+            MIGRATION_10_11
         )
 
         fun getDatabase(context: Context): CalWriteDatabase {

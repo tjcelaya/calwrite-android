@@ -12,4 +12,10 @@ class Converters {
 
     @TypeConverter
     fun toCadence(value: String?): Cadence = Cadence.fromName(value)
+
+    @TypeConverter
+    fun fromLabels(labels: Map<String, String>): String = EventLabels.format(labels)
+
+    @TypeConverter
+    fun toLabels(value: String?): Map<String, String> = EventLabels.parseOrEmpty(value)
 }

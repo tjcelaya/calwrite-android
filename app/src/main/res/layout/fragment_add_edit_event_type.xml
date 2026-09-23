@@ -54,6 +54,27 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Default labels: seed every new event of this type -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/defaultLabelsInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:hint="@string/event_type_default_labels_hint"
+            app:helperText="@string/event_type_default_labels_helper"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/defaultLabelsEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:inputType="text|textNoSuggestions"
+                android:maxLines="3"
+                tools:text="kind=cardio" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Color Selection -->
         <TextView
             android:layout_width="match_parent"

@@ -37,7 +37,9 @@ data class EventType(
     val shouldBubble: Boolean = false, // Whether this event type should show as bubbles when bubble mode is SELECTED
     val sortOrder: Int = 0, // User-defined sort order for display
     val createdAt: Long = System.currentTimeMillis(),
-    val cadence: Cadence = Cadence.BOTH // Which record actions are available for this event type
+    val cadence: Cadence = Cadence.BOTH, // Which record actions are available for this event type
+    // Labels every new event of this type starts with; editable per event afterwards.
+    val defaultLabels: Map<String, String> = emptyMap()
 ) {
     /**
      * Get the display color for this event type

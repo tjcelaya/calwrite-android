@@ -17,7 +17,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Exercises the 9 -> 10 migration, which adds `events.calendarEventId`.
+ * Exercises the migrations from schema 9 onwards: 9 -> 10 adds `events.calendarEventId`, and
+ * 10 -> 11 adds `events.labels` and `event_types.defaultLabels`.
  *
  * Room's MigrationTestHelper needs the schema JSON on the instrumentation classpath, so rather
  * than requiring a device this builds the v9 database directly from the DDL recorded in
@@ -117,6 +118,51 @@ class CalWriteDatabaseMigrationTest {
                 "an event with a calendar id is no longer unsynced",
                 0,
                 migrated.eventDao().getUnsyncedCompletedEvents().size
+            )
+        }
+    }
+
+    @Test
+    fun migration10To11_givesExistingEventsAndTypesNoLabels() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = "morning run"
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val event = migrated.eventDao().getEventById(1L)
+            assertEquals("morning run", event?.notes)
+            assertEquals(emptyMap<String, String>(), event?.labels)
+            assertEquals(emptyMap<String, String>(), migrated.eventTypeDao().getEventTypeById(1L)?.defaultLabels)
+        }
+    }
+
+    @Test
+    fun migration10To11_roundTripsLabelsThroughTheNewColumns() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val labels = mapOf("location" to "home gym", "odd,key" to "a=b")
+            val event = migrated.eventDao().getEventById(1L)!!
+            migrated.eventDao().updateEvent(event.copy(labels = labels))
+            assertEquals(labels, migrated.eventDao().getEventById(1L)?.labels)
+
+            val type = migrated.eventTypeDao().getEventTypeById(1L)!!
+            migrated.eventTypeDao().updateEventType(type.copy(defaultLabels = mapOf("kind" to "cardio")))
+            assertEquals(
+                mapOf("kind" to "cardio"),
+                migrated.eventTypeDao().getEventTypeById(1L)?.defaultLabels
             )
         }
     }

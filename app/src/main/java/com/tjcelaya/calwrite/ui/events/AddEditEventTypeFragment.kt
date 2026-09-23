@@ -22,6 +22,7 @@ import com.tjcelaya.calwrite.data.database.Cadence
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.CalWriteDatabase
 import com.tjcelaya.calwrite.databinding.FragmentAddEditEventTypeBinding
+import com.tjcelaya.calwrite.ui.components.LabelsField
 import com.tjcelaya.calwrite.utils.GoogleCalendarColors
 
 class AddEditEventTypeFragment : Fragment() {
@@ -240,6 +241,7 @@ class AddEditEventTypeFragment : Fragment() {
         editingEventType?.let { eventType ->
             binding.nameEditText.setText(eventType.name)
             binding.descriptionEditText.setText(eventType.description)
+            LabelsField.show(binding.defaultLabelsEditText, eventType.defaultLabels)
             binding.saveButton.text = "Update"
 
             // Restore color selection
@@ -266,6 +268,11 @@ class AddEditEventTypeFragment : Fragment() {
 
         binding.nameInputLayout.error = null
 
+        val defaultLabels = LabelsField.read(
+            binding.defaultLabelsInputLayout,
+            binding.defaultLabelsEditText
+        ) ?: return
+
         val shouldBubble = binding.bubbleSwitch.isChecked
         val cadence = selectedCadence()
 
@@ -276,7 +283,8 @@ class AddEditEventTypeFragment : Fragment() {
                 description = description.takeIf { it?.isNotBlank() == true },
                 colorId = selectedColorId,
                 shouldBubble = shouldBubble,
-                cadence = cadence
+                cadence = cadence,
+                defaultLabels = defaultLabels
             )
         } else {
             // Updating existing event type
@@ -285,7 +293,8 @@ class AddEditEventTypeFragment : Fragment() {
                 description = description.takeIf { it?.isNotBlank() == true },
                 colorId = selectedColorId,
                 shouldBubble = shouldBubble,
-                cadence = cadence
+                cadence = cadence,
+                defaultLabels = defaultLabels
             )
         }
 
