@@ -31,4 +31,9 @@ class StoragePreferences {
   when the flag comes back. The Notifications settings section is hidden.
 
 Nothing is deleted when a flag is turned off: stored photos, calendar links, shortcut plans and
-the bubble choice all survive a round trip.
+the bubble choice all survive a round trip. The config backup carries the three flags and the
+chosen bubble mode, not the effective one.
+
+The "what am I tracking?" launcher shortcut is pushed dynamically with the per-type ones (the
+static declaration is disabled), since a static shortcut cannot be withdrawn when the flag is off.
+Existing installs start with every flag off too; the user turns on what they use.

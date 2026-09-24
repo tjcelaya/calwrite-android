@@ -140,7 +140,7 @@ class SettingsFragment : Fragment() {
                 when (feature) {
                     // Shortcuts and the Assistant entry point follow the flag right away, so
                     // a launcher long-press or "Hey Google" cannot reach a feature that is off.
-                    Feature.VOICE -> viewLifecycleOwner.lifecycleScope.launch { app.voiceShortcutPublisher.publish() }
+                    Feature.VOICE -> app.applicationScope.launch { app.voiceShortcutPublisher.publish() }
                     Feature.BUBBLES -> updateBubbleStatus()
                     Feature.PHOTOS -> Unit
                 }

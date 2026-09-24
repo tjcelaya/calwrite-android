@@ -68,9 +68,10 @@
         </intent>
     </capability>
 
-    <!-- Also a launcher long-press entry; the dynamic per-type ones are pushed at runtime. -->
+    <!-- Disabled here: a static shortcut cannot be withdrawn at runtime, and the voice feature
+         is opt-in. VoiceShortcutPublisher pushes the same entry dynamically while it is on. -->
     <shortcut
-        android:enabled="true"
+        android:enabled="false"
         android:icon="@drawable/ic_schedule"
         android:shortcutId="voice_status"
         android:shortcutLongLabel="@string/voice_shortcut_status_long"

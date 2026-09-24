@@ -33,11 +33,14 @@ class VoiceShortcutPublisher(
         const val TAG = "VoiceShortcutPublisher"
 
         /**
-         * Slots left for shortcuts this class does not own: the static "what am I tracking"
-         * entry in shortcuts.xml and the `event_ongoing_…` bubble shortcuts NotificationService
-         * pushes while events are running. Without this the launcher would evict those.
+         * Slots left for shortcuts this class does not own: the `event_ongoing_…` bubble
+         * shortcuts NotificationService pushes while events are running. Without this the
+         * launcher would evict those.
          */
-        const val RESERVED_SLOTS = 5
+        const val RESERVED_SLOTS = 4
+
+        /** Slots this class uses beyond the per-type plan: the status entry. */
+        const val OWN_SLOTS = 1
 
         const val CAPABILITY_START = "actions.intent.START_EXERCISE"
         const val CAPABILITY_STOP = "actions.intent.STOP_EXERCISE"
@@ -51,22 +54,26 @@ class VoiceShortcutPublisher(
      * [VoiceActionActivity], so neither the launcher nor Assistant can reach voice control.
      */
     suspend fun publish() {
-        val enabled = storagePreferences.isFeatureEnabled(Feature.VOICE)
-        setEntryPointEnabled(enabled)
-        if (!enabled) {
-            removeStale(emptySet())
-            return
-        }
         try {
+            val enabled = storagePreferences.isFeatureEnabled(Feature.VOICE)
+            setEntryPointEnabled(enabled)
+            if (!enabled) {
+                removeStale(emptySet())
+                return
+            }
+
+            val published = mutableSetOf<String>()
+            val status = buildStatus()
+            if (ShortcutManagerCompat.pushDynamicShortcut(context, status)) published += status.id
+
             val types = eventRepository.getAllEventTypesSync()
             val lastUsed = types.associate { it.id to eventRepository.getLastCompletedEventTime(it.id) }
             val ranked = VoiceShortcutPlan.rank(types, lastUsed)
 
             val budget = (ShortcutManagerCompat.getMaxShortcutCountPerActivity(context) -
-                RESERVED_SLOTS).coerceAtLeast(0)
+                RESERVED_SLOTS - OWN_SLOTS).coerceAtLeast(0)
             val plan = VoiceShortcutPlan.plan(ranked, budget)
 
-            val published = mutableSetOf<String>()
             plan.entries.forEach { entry ->
                 val shortcut = build(entry.eventType, entry.action)
                 if (ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)) {
@@ -104,6 +111,15 @@ class VoiceShortcutPublisher(
             Log.d(TAG, "Voice entry point ${if (enabled) "enabled" else "disabled"}")
         }
     }
+
+    private fun buildStatus(): ShortcutInfoCompat =
+        ShortcutInfoCompat.Builder(context, VoiceShortcutPlan.STATUS_ID)
+            .setShortLabel(context.getString(R.string.voice_shortcut_status_short))
+            .setLongLabel(context.getString(R.string.voice_shortcut_status_long))
+            .setIcon(IconCompat.createWithResource(context, R.drawable.ic_schedule))
+            .setIntent(VoiceActionActivity.createIntent(context, VoiceActionType.STATUS, null))
+            .setLongLived(true)
+            .build()
 
     private fun build(eventType: EventType, action: VoiceActionType): ShortcutInfoCompat {
         val label = context.getString(labelFor(action), eventType.name)

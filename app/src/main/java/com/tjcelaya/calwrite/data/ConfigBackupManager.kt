@@ -167,7 +167,7 @@ class ConfigBackupManager(
         )
 
         val storage = JSONObject()
-            .put("bubbleMode", storagePreferences.getBubbleMode().name)
+            .put("bubbleMode", storagePreferences.getChosenBubbleMode().name)
             .put("instantEventIcon", storagePreferences.getInstantEventIcon().name)
             .put("googleDriveEnabled", storagePreferences.isGoogleDriveEnabled())
             .put("googlePhotosEnabled", storagePreferences.isGooglePhotosEnabled())
@@ -179,7 +179,13 @@ class ConfigBackupManager(
             .put("calendarSetupComplete", calendarRepository.isCalendarSetupComplete())
             .put("enhancedCalendarEnabled", calendarRepository.isEnhancedCalendarEnabled())
 
-        root.put("settings", JSONObject().put("storage", storage).put("calendar", calendar))
+        val features = JSONObject()
+        Feature.values().forEach { features.put(it.prefKey, storagePreferences.isFeatureEnabled(it)) }
+
+        root.put(
+            "settings",
+            JSONObject().put("storage", storage).put("calendar", calendar).put("features", features)
+        )
 
         root.toString(2)
     }
@@ -283,6 +289,14 @@ class ConfigBackupManager(
 
     private fun applySettings(settings: JSONObject?) {
         if (settings == null) return
+
+        settings.optJSONObject("features")?.let { features ->
+            Feature.values().forEach { feature ->
+                if (features.has(feature.prefKey)) {
+                    storagePreferences.setFeatureEnabled(feature, features.optBoolean(feature.prefKey, false))
+                }
+            }
+        }
 
         settings.optJSONObject("storage")?.let { storage ->
             storage.optStringOrNull("bubbleMode")?.let { name ->

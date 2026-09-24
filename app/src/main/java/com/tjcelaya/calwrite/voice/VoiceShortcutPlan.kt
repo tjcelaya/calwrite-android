@@ -18,6 +18,9 @@ object VoiceShortcutPlan {
     const val STOP_PREFIX = "voice_stop_"
     const val RECORD_PREFIX = "voice_record_"
 
+    /** The single "what am I tracking?" entry, pushed alongside the per-type shortcuts. */
+    const val STATUS_ID = "voice_status"
+
     data class Entry(val eventType: EventType, val action: VoiceActionType)
 
     data class Plan(
@@ -33,7 +36,7 @@ object VoiceShortcutPlan {
     }
 
     fun isVoiceShortcutId(id: String): Boolean =
-        id.startsWith(START_PREFIX) || id.startsWith(STOP_PREFIX) || id.startsWith(RECORD_PREFIX)
+        id == STATUS_ID || id.startsWith(START_PREFIX) || id.startsWith(STOP_PREFIX) || id.startsWith(RECORD_PREFIX)
 
     /**
      * User-chosen order first, then recency, so an untouched sortOrder still yields a sensible
