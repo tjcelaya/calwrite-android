@@ -15,7 +15,7 @@ object CompactWindow {
 }
 
 class EventTypesTrackingAdapter {
-    fun setCompact(enabled: Boolean)   // one-line rows (item_event_type_compact) instead of list or card
+    fun setCompact(enabled: Boolean)   // pills (item_event_type_compact) instead of list rows or cards
 }
 
 // TrackingFragment: chrome that goes on a compact window
@@ -30,8 +30,10 @@ private fun applyCompactChrome() {
 - The manifest opts in to `PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN`, so Android 15+ runs the
   app at the cover's real size rather than letterboxed. The activity is already resizeable, so
   folding and unfolding re-create it and every screen re-inflates for the new size.
-- A compact row is 44 dp: colour dot, name, last occurrence or running elapsed time, and the
-  record buttons the type's cadence calls for, at 36 dp. Eight or nine types fit without scrolling.
+- Types are laid out as equal-width pills, `COMPACT_COLUMNS` per row (2 for now, to be tuned):
+  a 40 dp rounded chip with the colour dot, the name, the running elapsed time when there is one,
+  and the record buttons the type's cadence calls for, at 30 dp. About sixteen types fit
+  without scrolling.
 - The user's list/card choice and card size are not touched; they apply again when unfolded.
 - Other screens (ledger, type editor, settings) are left as they are: they scroll.
 

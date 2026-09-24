@@ -1,126 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cover-screen row: one line per type, record actions at the right. Same ids as
+<!-- Cover-screen pill: one per type in a two-column grid. Same ids as
      item_event_type_tracking so the list view holder binds it unchanged; the parts that do
-     not fit (description, "started at") are simply gone. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     not fit (description, "started at", last occurrence) are simply gone. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?android:attr/selectableItemBackground"
-    android:clickable="true"
-    android:focusable="true"
-    android:gravity="center_vertical"
-    android:minHeight="44dp"
-    android:orientation="horizontal"
-    android:paddingStart="12dp"
-    android:paddingTop="2dp"
-    android:paddingEnd="8dp"
-    android:paddingBottom="2dp">
-
-    <View
-        android:id="@+id/colorIndicator"
-        android:layout_width="8dp"
-        android:layout_height="8dp"
-        android:layout_marginEnd="10dp"
-        android:background="@drawable/circle_background"
-        tools:backgroundTint="?attr/colorPrimary" />
+    android:layout_margin="3dp"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp">
 
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingEnd="4dp">
 
-        <TextView
-            android:id="@+id/eventTypeName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-            android:textColor="?android:attr/textColorPrimary"
-            tools:text="Exercise" />
-
-        <TextView
-            android:id="@+id/eventTypeDescription"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone" />
+        <View
+            android:id="@+id/colorIndicator"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/circle_background"
+            tools:backgroundTint="?attr/colorPrimary" />
 
         <LinearLayout
-            android:id="@+id/ongoingStatusLayout"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:visibility="gone">
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/elapsedTimeText"
-                android:layout_width="wrap_content"
+                android:id="@+id/eventTypeName"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-                android:textColor="?attr/colorPrimary"
-                tools:text="00:12:34" />
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.Material3.LabelLarge"
+                android:textColor="?android:attr/textColorPrimary"
+                tools:text="Exercise" />
 
             <TextView
-                android:id="@+id/startedAtText"
+                android:id="@+id/eventTypeDescription"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/ongoingStatusLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/elapsedTimeText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
+                    android:textColor="?attr/colorPrimary"
+                    tools:text="00:12:34" />
+
+                <TextView
+                    android:id="@+id/startedAtText"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/lastOccurrenceText"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:visibility="gone" />
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/lastOccurrenceText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textAppearance="@style/TextAppearance.Material3.LabelSmall"
-            android:textColor="?android:attr/textColorSecondary"
-            tools:text="2 hours ago" />
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/instantEventButton"
             style="@style/Widget.Material3.Button.IconButton.Filled"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="4dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_marginEnd="2dp"
             android:contentDescription="Record Instant Event"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
             app:icon="@drawable/ic_add"
-            app:iconSize="18dp" />
+            app:iconSize="16dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/startEventButton"
             style="@style/Widget.Material3.Button.IconButton.Outlined"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:contentDescription="Start Event"
             android:insetLeft="0dp"
             android:insetTop="0dp"
             android:insetRight="0dp"
             android:insetBottom="0dp"
             app:icon="@drawable/ic_schedule"
-            app:iconSize="18dp" />
+            app:iconSize="16dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/stopEventButton"
             style="@style/Widget.Material3.Button.IconButton.Outlined"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:contentDescription="Stop Event"
             android:insetLeft="0dp"
             android:insetTop="0dp"
@@ -128,11 +122,11 @@
             android:insetBottom="0dp"
             android:visibility="gone"
             app:icon="@drawable/ic_stop"
-            app:iconSize="18dp"
+            app:iconSize="16dp"
             app:iconTint="?attr/colorError"
             app:strokeColor="?attr/colorError"
             tools:visibility="visible" />
 
     </LinearLayout>
 
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>
