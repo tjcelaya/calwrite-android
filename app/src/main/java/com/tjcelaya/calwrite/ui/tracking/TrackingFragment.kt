@@ -54,6 +54,9 @@ class TrackingFragment : Fragment() {
         /** Bottom margins of the FAB menu's slots, lowest first; matches fragment_tracking.xml. */
         const val FAB_MENU_FIRST_SLOT_DP = 100
         const val FAB_MENU_SLOT_DP = 72
+
+        /** Pills per row on a cover screen; each pill is 1/N of the width. */
+        const val COMPACT_COLUMNS = 2
     }
 
     private var _binding: FragmentTrackingBinding? = null
@@ -207,7 +210,8 @@ class TrackingFragment : Fragment() {
         gridLayoutManager = GridLayoutManager(requireContext(), 1)
         gridLayoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
-                if (currentViewMode != EventViewMode.CARD) return 1
+                // Only cards and cover-screen pills share a row; headers and future events span it.
+                if (currentViewMode != EventViewMode.CARD && !isCompactWindow) return 1
                 return if (position < eventTypesAdapter.itemCount) 1 else gridLayoutManager.spanCount
             }
         }
@@ -256,8 +260,8 @@ class TrackingFragment : Fragment() {
     /**
      * On a cover screen the job is "tap to record", so the chrome around the list goes: the
      * view toggle, the card-size slider, quick add and the FAB menu (new types, scheduling and
-     * photos are big-screen work). The list itself becomes one compact row per type. The
-     * user's view-mode and card-size choices are left untouched for the main screen.
+     * photos are big-screen work). The list itself becomes a grid of equal-width pills, one per
+     * type. The user's view-mode and card-size choices are left untouched for the main screen.
      */
     private val isCompactWindow: Boolean get() = CompactWindow.isCompact(resources.configuration)
 
@@ -285,6 +289,11 @@ class TrackingFragment : Fragment() {
     }
 
     private fun recomputeSpanCount() {
+        if (isCompactWindow) {
+            gridLayoutManager.spanCount = COMPACT_COLUMNS
+            eventTypesAdapter.setCellWidthPx(0)
+            return
+        }
         if (currentViewMode != EventViewMode.CARD) {
             gridLayoutManager.spanCount = 1
             eventTypesAdapter.setCellWidthPx(0)
