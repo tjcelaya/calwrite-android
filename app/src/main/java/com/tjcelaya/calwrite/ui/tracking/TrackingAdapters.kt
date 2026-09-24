@@ -41,9 +41,20 @@ class EventTypesTrackingAdapter(
         private const val PAYLOAD_UPDATE_TIME_SINCE = "update_time_since"
         private const val VIEW_TYPE_LIST = 0
         private const val VIEW_TYPE_CARD = 1
+        private const val VIEW_TYPE_COMPACT = 2
     }
 
     private var viewMode: EventViewMode = EventViewMode.LIST
+
+    /** Cover-screen rows: one line each, in place of both list and card presentations. */
+    private var compact: Boolean = false
+
+    fun setCompact(enabled: Boolean) {
+        if (compact != enabled) {
+            compact = enabled
+            notifyDataSetChanged()
+        }
+    }
     private var cellWidthPx: Int = 0
     private var cardColorStyle: CardColorStyle = CardColorStyle.LINE
 
@@ -68,15 +79,18 @@ class EventTypesTrackingAdapter(
         }
     }
 
-    override fun getItemViewType(position: Int): Int =
-        if (viewMode == EventViewMode.CARD) VIEW_TYPE_CARD else VIEW_TYPE_LIST
+    override fun getItemViewType(position: Int): Int = when {
+        compact -> VIEW_TYPE_COMPACT
+        viewMode == EventViewMode.CARD -> VIEW_TYPE_CARD
+        else -> VIEW_TYPE_LIST
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == VIEW_TYPE_CARD) {
-            CardViewHolder(inflater.inflate(R.layout.item_event_type_card, parent, false))
-        } else {
-            ListViewHolder(inflater.inflate(R.layout.item_event_type_tracking, parent, false))
+        return when (viewType) {
+            VIEW_TYPE_CARD -> CardViewHolder(inflater.inflate(R.layout.item_event_type_card, parent, false))
+            VIEW_TYPE_COMPACT -> ListViewHolder(inflater.inflate(R.layout.item_event_type_compact, parent, false))
+            else -> ListViewHolder(inflater.inflate(R.layout.item_event_type_tracking, parent, false))
         }
     }
 

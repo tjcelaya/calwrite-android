@@ -37,6 +37,7 @@ import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.OngoingEvent
 import com.tjcelaya.calwrite.databinding.FragmentTrackingBinding
+import com.tjcelaya.calwrite.ui.components.CompactWindow
 import com.tjcelaya.calwrite.ui.components.RecordValuesPrompt
 import com.tjcelaya.calwrite.ui.dialogs.NotificationPermissionDialog
 import com.tjcelaya.calwrite.ui.dialogs.SaveEventDialog
@@ -246,13 +247,35 @@ class TrackingFragment : Fragment() {
         recomputeSpanCount()
     }
 
+    /**
+     * On a cover screen the job is "tap to record", so the chrome around the list goes: the
+     * view toggle, the card-size slider, quick add and the FAB menu (new types, scheduling and
+     * photos are big-screen work). The list itself becomes one compact row per type. The
+     * user's view-mode and card-size choices are left untouched for the main screen.
+     */
+    private val isCompactWindow: Boolean get() = CompactWindow.isCompact(resources.configuration)
+
+    private fun applyCompactChrome() {
+        binding.viewModeToggle.visibility = View.GONE
+        binding.cardSizeRow.visibility = View.GONE
+        binding.quickAddCard.visibility = View.GONE
+        binding.fab.visibility = View.GONE
+        eventTypesAdapter.setCompact(true)
+    }
+
     private fun applyViewMode() {
-        val mode = storagePreferences.getEventViewMode()
+        val config = resources.configuration
+        Log.d(
+            "TrackingFragment",
+            "Window ${config.screenWidthDp}x${config.screenHeightDp}dp, compact=${isCompactWindow}"
+        )
+        val mode = if (isCompactWindow) EventViewMode.LIST else storagePreferences.getEventViewMode()
         currentViewMode = mode
         eventTypesAdapter.setViewMode(mode)
         eventTypesAdapter.setCardColorStyle(storagePreferences.getCardColorStyle())
         binding.cardSizeRow.visibility = if (mode == EventViewMode.CARD) View.VISIBLE else View.GONE
         recomputeSpanCount()
+        if (isCompactWindow) applyCompactChrome()
     }
 
     private fun recomputeSpanCount() {
