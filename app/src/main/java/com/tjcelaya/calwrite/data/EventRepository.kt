@@ -78,8 +78,18 @@ class EventRepository(
         _photoUploads.postValue(activeUploads.values.toList())
     }
 
+    // === Archived types are left out of every listing except the one Manage events uses ===
+
+    private fun <T> Flow<List<T>>.visible(isArchived: (T) -> Boolean): Flow<List<T>> =
+        map { items -> items.filterNot(isArchived) }
+
     // Event Type operations
-    fun getAllEventTypes(): LiveData<List<EventType>> = eventTypeDao.getAllEventTypes()
+    fun getAllEventTypes(): LiveData<List<EventType>> =
+        eventTypeDao.getAllEventTypes().visible { it.archived }.asLiveData()
+
+    /** Every type, archived ones included: for the Manage events screen, which can unarchive. */
+    fun getAllEventTypesIncludingArchived(): LiveData<List<EventType>> =
+        eventTypeDao.getAllEventTypes().asLiveData()
 
     fun getFavoriteEventTypes(): Flow<List<EventType>> {
         // For now, return empty list. In future, can add favorite functionality
@@ -91,13 +101,21 @@ class EventRepository(
     }
 
     suspend fun getEventTypeByName(name: String): EventType? = withContext(Dispatchers.IO) {
+        eventTypeDao.getEventTypeByName(name)?.takeIf { !it.archived }
+    }
+
+    /**
+     * Name lookup that sees archived types too. Anything that creates a type from a name must
+     * use this, since the unique name index means an archived type still owns its name.
+     */
+    suspend fun findEventTypeByNameIncludingArchived(name: String): EventType? = withContext(Dispatchers.IO) {
         eventTypeDao.getEventTypeByName(name)
     }
 
     suspend fun getAllEventTypesSync(): List<EventType> = withContext(Dispatchers.IO) {
         // Get all event types synchronously by converting LiveData to a one-time fetch
         // This is a simple solution - in a real app you might want to use Flow instead
-        eventTypeDao.getAllEventTypesSync()
+        eventTypeDao.getAllEventTypesSync().filterNot { it.archived }
     }
 
     suspend fun insertEventType(eventType: EventType): Long = withContext(Dispatchers.IO) {
@@ -130,13 +148,27 @@ class EventRepository(
         calendar.add(Calendar.DAY_OF_MONTH, 1)
         val endOfDay = calendar.timeInMillis
 
-        return eventDao.getTodaysEventsWithType(startOfDay, endOfDay)
+        return eventDao.getTodaysEventsWithType(startOfDay, endOfDay).visible { it.eventType.archived }
     }
 
-    fun getOngoingEventsWithType(): Flow<List<EventWithType>> = eventDao.getOngoingEventsWithType()
+    fun getOngoingEventsWithType(): Flow<List<EventWithType>> =
+        eventDao.getOngoingEventsWithType().visible { it.eventType.archived }
 
     // Event creation and management
-    suspend fun createInstantEvent(eventTypeId: Long, notes: String = "", photoPath: String? = null, timestamp: Long? = null): Long = withContext(Dispatchers.IO) {
+    /** A new event's labels: its type's defaults, overlaid with any given for this occurrence. */
+    private suspend fun labelsForNewEvent(eventTypeId: Long, labels: Map<String, String>): Map<String, String> {
+        val defaults = eventTypeDao.getEventTypeById(eventTypeId)?.defaultLabels.orEmpty()
+        return EventLabels.merge(defaults, labels)
+    }
+
+    suspend fun createInstantEvent(
+        eventTypeId: Long,
+        notes: String = "",
+        photoPath: String? = null,
+        timestamp: Long? = null,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Long = withContext(Dispatchers.IO) {
         val eventTime = timestamp ?: System.currentTimeMillis()
 
         // Debug logging
@@ -149,7 +181,9 @@ class EventRepository(
             startTime = eventTime,
             endTime = eventTime, // Same time for instant events
             notes = notes,
-            photoPath = photoPath
+            photoPath = photoPath,
+            labels = labelsForNewEvent(eventTypeId, labels),
+            fields = fields
         )
         val eventId = eventDao.insertEvent(event)
         Log.d("EventRepository", "Created event with ID: $eventId")
@@ -157,14 +191,23 @@ class EventRepository(
     }
 
 
-    suspend fun startTimedEvent(eventTypeId: Long, notes: String = "", photoPath: String? = null, timestamp: Long? = null): Long = withContext(Dispatchers.IO) {
+    suspend fun startTimedEvent(
+        eventTypeId: Long,
+        notes: String = "",
+        photoPath: String? = null,
+        timestamp: Long? = null,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Long = withContext(Dispatchers.IO) {
         val startTime = timestamp ?: System.currentTimeMillis()
         val event = Event(
             eventTypeId = eventTypeId,
             startTime = startTime,
             endTime = null, // Null indicates ongoing event
             notes = notes,
-            photoPath = photoPath
+            photoPath = photoPath,
+            labels = labelsForNewEvent(eventTypeId, labels),
+            fields = fields
         )
         eventDao.insertEvent(event)
     }
@@ -288,9 +331,13 @@ class EventRepository(
         startTimedEvent(eventTypeId, notes, uploadedPhotoPath)
     }
 
-    suspend fun completeOngoingEvent(eventId: Long): Boolean = withContext(Dispatchers.IO) {
+    suspend fun completeOngoingEvent(
+        eventId: Long,
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Boolean = withContext(Dispatchers.IO) {
         val event = eventDao.getEventById(eventId)
         if (event != null && event.isOngoing()) {
+            if (fields.isNotEmpty()) eventDao.updateEvent(event.copy(fields = fields))
             eventDao.completeEvent(eventId, System.currentTimeMillis())
             true
         } else {
@@ -380,7 +427,7 @@ class EventRepository(
 
         // Use a MediatorLiveData that observes the ongoing events Flow
         return MediatorLiveData<List<OngoingEvent>>().apply {
-            val source = eventDao.getOngoingEventsWithType().asLiveData()
+            val source = getOngoingEventsWithType().asLiveData()
             addSource(source) { eventsWithType ->
                 try {
                     val ongoingEventsList = eventsWithType
@@ -403,7 +450,11 @@ class EventRepository(
         }
     }
 
-    suspend fun startEvent(eventTypeId: Long, notes: String? = null): Long {
+    suspend fun startEvent(
+        eventTypeId: Long,
+        notes: String? = null,
+        labels: Map<String, String> = emptyMap()
+    ): Long {
         // Check if calendar is set up before creating event
         // (We check this even for timed events since they'll need to sync when completed)
         // TODO: We could make this check optional for timed events if needed
@@ -414,7 +465,7 @@ class EventRepository(
             throw IllegalStateException("An event of this type is already in progress. Please stop the existing event first.")
         }
 
-        val eventId = startTimedEvent(eventTypeId, notes ?: "")
+        val eventId = startTimedEvent(eventTypeId, notes ?: "", labels = labels)
         
         // Show notification for ongoing event
         notificationService?.let { service ->
@@ -450,25 +501,39 @@ class EventRepository(
         return eventId
     }
 
-    suspend fun recordInstantaneousEvent(eventTypeId: Long, calendarRepository: CalendarRepository): Long {
+    suspend fun recordInstantaneousEvent(
+        eventTypeId: Long,
+        calendarRepository: CalendarRepository,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Long {
         // Check if calendar is set up before creating event
         if (!calendarRepository.isCalendarSetupComplete()) {
             throw IllegalStateException("No calendar selected. Please select a calendar in settings before creating events.")
         }
 
-        val eventId = createInstantEvent(eventTypeId)
+        val eventId = createInstantEvent(eventTypeId, labels = labels, fields = fields)
         // Sync instant event to calendar immediately
         syncEventToCalendar(eventId, calendarRepository)
         return eventId
     }
 
-    suspend fun stopEvent(ongoingEventId: Long, calendarRepository: CalendarRepository): Boolean {
+    /**
+     * Finish a running event and write it to the calendar. [fields] are the measurements entered
+     * at stop time (a timed event's values are usually only known once it ends); they replace
+     * any the event already carried.
+     */
+    suspend fun stopEvent(
+        ongoingEventId: Long,
+        calendarRepository: CalendarRepository,
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Boolean {
         // Check if calendar is set up before completing event
         if (!calendarRepository.isCalendarSetupComplete()) {
             throw IllegalStateException("No calendar selected. Please select a calendar in settings before completing events.")
         }
 
-        val success = completeOngoingEvent(ongoingEventId)
+        val success = completeOngoingEvent(ongoingEventId, fields)
         if (success) {
             // Dismiss notification for completed event
             notificationService?.dismissOngoingEventNotification(ongoingEventId)
@@ -481,16 +546,17 @@ class EventRepository(
 
     /** Recent finished events with their type, newest first, for the ledger. */
     fun getRecentCompletedEventsWithType(limit: Int = 200): Flow<List<EventWithType>> =
-        eventDao.getRecentCompletedEventsWithType(limit)
+        eventDao.getRecentCompletedEventsWithType(limit).visible { it.eventType.archived }
 
     /** Any event by id, ongoing or finished. */
     suspend fun getEventByIdOrNull(eventId: Long): Event? = withContext(Dispatchers.IO) {
         eventDao.getEventById(eventId)
     }
 
-    /** Currently-running events, newest first. */
+    /** Currently-running events, newest first, leaving out those of archived types. */
     suspend fun getOngoingEventsSync(): List<Event> = withContext(Dispatchers.IO) {
-        eventDao.getOngoingEvents()
+        val archived = eventTypeDao.getAllEventTypesSync().filter { it.archived }.map { it.id }.toSet()
+        eventDao.getOngoingEvents().filterNot { it.eventTypeId in archived }
     }
 
     /** The running event for a type, or null when that type isn't currently being tracked. */
@@ -586,7 +652,9 @@ class EventRepository(
                     event.startTime,
                     newEndTime,
                     event.notes,
-                    event.photoPath
+                    event.photoPath,
+                    event.labels,
+                    event.fields
                 )
             } else {
                 // Never synced (or synced before calendarEventId was persisted) - sync now so the
@@ -607,7 +675,8 @@ class EventRepository(
     }
 
     /**
-     * Rewrite a recorded event's times and notes, mirroring the change into the calendar copy.
+     * Rewrite a recorded event's times, notes, labels and fields, mirroring the change into the
+     * calendar copy.
      *
      * Used by the ledger's Adjust action. Refuses an end before its start rather than writing a
      * negative-duration event that the calendar would reject anyway.
@@ -617,6 +686,8 @@ class EventRepository(
         startTime: Long,
         endTime: Long,
         notes: String,
+        labels: Map<String, String>,
+        fields: Map<String, FieldValue>,
         calendarRepository: CalendarRepository
     ): Boolean = withContext(Dispatchers.IO) {
         val event = eventDao.getEventById(eventId) ?: return@withContext false
@@ -624,7 +695,13 @@ class EventRepository(
             Log.w("EventRepository", "adjustEvent: refusing end before start for event $eventId")
             return@withContext false
         }
-        val adjusted = event.copy(startTime = startTime, endTime = endTime, notes = notes)
+        val adjusted = event.copy(
+            startTime = startTime,
+            endTime = endTime,
+            notes = notes,
+            labels = labels,
+            fields = fields
+        )
         eventDao.updateEvent(adjusted)
         propagateToCalendar(adjusted, calendarRepository)
         true
@@ -665,7 +742,9 @@ class EventRepository(
                     event.startTime,
                     event.endTime ?: event.startTime,
                     event.notes,
-                    event.photoPath
+                    event.photoPath,
+                    event.labels,
+                    event.fields
                 )
                 if (!updated) Log.w("EventRepository", "Calendar update failed for event ${event.id}")
             } else {
@@ -693,7 +772,9 @@ class EventRepository(
                     event.startTime,
                     result.previousEndTime,
                     event.notes,
-                    event.photoPath
+                    event.photoPath,
+                    event.labels,
+                    event.fields
                 )
             }
             true
@@ -1441,7 +1522,9 @@ class EventRepository(
                     event.startTime,
                     event.endTime ?: event.startTime,
                     event.notes,
-                    combinedPhotoPath
+                    combinedPhotoPath,
+                    event.labels,
+                    event.fields
                 )
 
                 if (success) {
@@ -1553,7 +1636,9 @@ class EventRepository(
                     event.startTime,
                     event.endTime ?: event.startTime, // Use startTime if null (ongoing event)
                     event.notes,
-                    event.photoPath
+                    event.photoPath,
+                    event.labels,
+                    event.fields
                 )
 
                 if (calendarEventId != null) {

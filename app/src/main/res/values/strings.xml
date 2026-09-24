@@ -223,6 +223,39 @@
     <string name="ledger_adjust_start">Start</string>
     <string name="ledger_adjust_end">End</string>
     <string name="ledger_adjust_notes">Notes</string>
+    <string name="labels_hint">Labels</string>
+    <string name="labels_helper">key=value, comma separated, e.g. location=gym,intensity=high</string>
+    <string name="labels_error_missing_equals">\u201c%1$s\u201d needs to be written as key=value</string>
+    <string name="labels_error_empty_key">\u201c%1$s\u201d is missing its key</string>
+    <string name="labels_error_duplicate_key">The label \u201c%1$s\u201d appears more than once</string>
+    <string name="fields_hint">Fields</string>
+    <string name="fields_helper">key=number with unit, comma separated, e.g. heart_rate=72bpm,score=1500</string>
+    <string name="fields_error_not_a_number">\u201c%1$s\u201d needs a number, like 72 or 5.2km</string>
+    <string name="record_values_title">Record %1$s</string>
+    <string name="record_values_record">Record</string>
+    <string name="event_type_labels_title">Labels</string>
+    <string name="event_type_labels_helper">Tags every new event of this type starts with, such as game=tetris. You can change them per event.</string>
+    <string name="event_type_fields_title">Fields</string>
+    <string name="event_type_fields_helper">Measurements you\'ll be asked for when recording, such as a heart rate in bpm. A default value pre-fills the prompt.</string>
+    <string name="attr_key_hint">Name</string>
+    <string name="attr_default_hint">Default</string>
+    <string name="attr_unit_hint">Unit</string>
+    <string name="attr_unit_none">None</string>
+    <string name="attr_unit_add">Add a new unit…</string>
+    <string name="attr_unit_add_confirm">Add</string>
+    <string name="attr_add_label">Add label</string>
+    <string name="attr_add_field">Add field</string>
+    <string name="attr_remove">Remove</string>
+    <string name="attr_error_key_required">Give it a name</string>
+    <string name="attr_error_key_duplicate">Already used above</string>
+    <string name="unit_dialog_title">New unit</string>
+    <string name="unit_dialog_hint">e.g. reps, steps, oz</string>
+    <string name="unit_dialog_required">Type a unit</string>
+    <string name="event_type_calendar_hint">Calendar</string>
+    <string name="event_type_calendar_default">Default (%1$s)</string>
+    <string name="event_type_calendar_none">none chosen</string>
+    <string name="event_type_archived">Archived</string>
+    <string name="event_type_archived_name">%1$s (archived)</string>
     <string name="ledger_adjust_save">Save changes</string>
     <string name="ledger_adjust_end_before_start">The end time must be after the start time.</string>
     <string name="ledger_adjusted_message">Updated %1$s</string>

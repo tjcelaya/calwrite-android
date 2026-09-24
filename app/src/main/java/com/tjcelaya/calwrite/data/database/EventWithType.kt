@@ -24,6 +24,8 @@ data class EventWithType(
     val endTime: Long? get() = event.endTime
     val notes: String get() = event.notes
     val photoPath: String? get() = event.photoPath
+    val labels: Map<String, String> get() = event.labels
+    val fields: Map<String, FieldValue> get() = event.fields
     val isOngoing: Boolean get() = event.isOngoing()
     val isInstant: Boolean get() = event.isInstant()
     val isCompleted: Boolean get() = event.isCompleted()

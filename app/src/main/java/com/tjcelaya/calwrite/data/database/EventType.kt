@@ -37,7 +37,18 @@ data class EventType(
     val shouldBubble: Boolean = false, // Whether this event type should show as bubbles when bubble mode is SELECTED
     val sortOrder: Int = 0, // User-defined sort order for display
     val createdAt: Long = System.currentTimeMillis(),
-    val cadence: Cadence = Cadence.BOTH // Which record actions are available for this event type
+    val cadence: Cadence = Cadence.BOTH, // Which record actions are available for this event type
+    // Labels every new event of this type starts with; editable per event afterwards.
+    val defaultLabels: Map<String, String> = emptyMap(),
+    // Measurements every event of this type is asked for when recorded: key -> unit and optional
+    // starting value. A prompt shows one input per entry.
+    val fieldSpecs: Map<String, FieldSpec> = emptyMap(),
+    // CalendarContract calendar this type's events are written to; null means the calendar
+    // chosen in Settings.
+    val calendarId: Long? = null,
+    // Archived types stay in Manage events (so they can be unarchived) and leave every other
+    // view: tracking, ledger, voice resolution and shortcuts.
+    val archived: Boolean = false
 ) {
     /**
      * Get the display color for this event type

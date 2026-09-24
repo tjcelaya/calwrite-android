@@ -11,6 +11,7 @@ import com.tjcelaya.calwrite.data.CalendarRepository
 import com.tjcelaya.calwrite.data.EventRepository
 import com.tjcelaya.calwrite.data.ExtendResult
 import com.tjcelaya.calwrite.data.database.EventWithType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -104,10 +105,18 @@ class LedgerViewModel(
 
     // === Adjust ===
 
-    fun adjust(eventId: Long, startTime: Long, endTime: Long, notes: String, onResult: (Boolean) -> Unit) {
+    fun adjust(
+        eventId: Long,
+        startTime: Long,
+        endTime: Long,
+        notes: String,
+        labels: Map<String, String>,
+        fields: Map<String, FieldValue>,
+        onResult: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
             val ok = try {
-                eventRepository.adjustEvent(eventId, startTime, endTime, notes, calendarRepository)
+                eventRepository.adjustEvent(eventId, startTime, endTime, notes, labels, fields, calendarRepository)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to adjust event $eventId", e)
                 false

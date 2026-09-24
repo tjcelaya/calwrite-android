@@ -1,5 +1,6 @@
 package com.tjcelaya.calwrite.voice
 
+import com.tjcelaya.calwrite.data.database.FieldValue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -50,6 +51,26 @@ class VoiceIntentParserTest {
             "Café",
             VoiceIntentParser.fromDeepLink("calwrite://action/record?name=Caf%C3%A9")?.typeQuery
         )
+    }
+
+    @Test
+    fun `parses labels and fields parameters`() {
+        val request = VoiceIntentParser.fromDeepLink(
+            "calwrite://action/record?name=High%20score&labels=game%3Dtetris&fields=score%3D1500"
+        )
+        assertEquals(mapOf("game" to "tetris"), request?.labels)
+        assertEquals(mapOf("score" to FieldValue(1500.0)), request?.fields)
+        assertEquals(
+            mapOf("heart_rate" to FieldValue(72.0, "bpm")),
+            VoiceIntentParser.fromDeepLink("calwrite://action/record?name=HR&fields=heart_rate=72bpm")?.fields
+        )
+    }
+
+    @Test
+    fun `malformed labels or fields are dropped, not fatal`() {
+        val request = VoiceIntentParser.fromDeepLink("calwrite://action/record?name=HR&fields=heart_rate=high")
+        assertEquals(VoiceActionType.RECORD, request?.action)
+        assertEquals(emptyMap<String, FieldValue>(), request?.fields)
     }
 
     @Test

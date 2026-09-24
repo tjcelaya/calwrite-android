@@ -1,13 +1,13 @@
 package com.tjcelaya.calwrite.data.database
 
-import androidx.lifecycle.LiveData
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventTypeDao {
 
     @Query("SELECT * FROM event_types ORDER BY sortOrder ASC, name ASC")
-    fun getAllEventTypes(): LiveData<List<EventType>>
+    fun getAllEventTypes(): Flow<List<EventType>>
 
     @Query("SELECT * FROM event_types ORDER BY sortOrder ASC, name ASC")
     suspend fun getAllEventTypesSync(): List<EventType>
@@ -18,7 +18,9 @@ interface EventTypeDao {
     @Query("SELECT * FROM event_types WHERE name = :name COLLATE NOCASE LIMIT 1")
     suspend fun getEventTypeByName(name: String): EventType?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    // ABORT, not REPLACE: `name` is unique and events cascade on delete, so a replace on a name
+    // collision would silently wipe the existing type's history. Callers check names first.
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertEventType(eventType: EventType): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

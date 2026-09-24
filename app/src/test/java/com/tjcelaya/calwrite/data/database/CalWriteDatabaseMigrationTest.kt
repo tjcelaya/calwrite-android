@@ -17,7 +17,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Exercises the 9 -> 10 migration, which adds `events.calendarEventId`.
+ * Exercises the migrations from schema 9 onwards: 9 -> 10 adds `events.calendarEventId`,
+ * 10 -> 11 adds `events.labels` and `event_types.defaultLabels`, and 11 -> 12 adds
+ * `events.fields` and `event_types.fieldUnits`, which 12 -> 13 renames to `fieldSpecs`.
  *
  * Room's MigrationTestHelper needs the schema JSON on the instrumentation classpath, so rather
  * than requiring a device this builds the v9 database directly from the DDL recorded in
@@ -118,6 +120,115 @@ class CalWriteDatabaseMigrationTest {
                 0,
                 migrated.eventDao().getUnsyncedCompletedEvents().size
             )
+        }
+    }
+
+    @Test
+    fun migration10To11_givesExistingEventsAndTypesNoLabels() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = "morning run"
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val event = migrated.eventDao().getEventById(1L)
+            assertEquals("morning run", event?.notes)
+            assertEquals(emptyMap<String, String>(), event?.labels)
+            assertEquals(emptyMap<String, String>(), migrated.eventTypeDao().getEventTypeById(1L)?.defaultLabels)
+        }
+    }
+
+    @Test
+    fun migration10To11_roundTripsLabelsThroughTheNewColumns() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val labels = mapOf("location" to "home gym", "odd,key" to "a=b")
+            val event = migrated.eventDao().getEventById(1L)!!
+            migrated.eventDao().updateEvent(event.copy(labels = labels))
+            assertEquals(labels, migrated.eventDao().getEventById(1L)?.labels)
+
+            val type = migrated.eventTypeDao().getEventTypeById(1L)!!
+            migrated.eventTypeDao().updateEventType(type.copy(defaultLabels = mapOf("kind" to "cardio")))
+            assertEquals(
+                mapOf("kind" to "cardio"),
+                migrated.eventTypeDao().getEventTypeById(1L)?.defaultLabels
+            )
+        }
+    }
+
+    @Test
+    fun migration11To13_givesExistingEventsAndTypesNoFields() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            assertEquals(emptyMap<String, FieldValue>(), migrated.eventDao().getEventById(1L)?.fields)
+            assertEquals(emptyMap<String, FieldSpec>(), migrated.eventTypeDao().getEventTypeById(1L)?.fieldSpecs)
+        }
+    }
+
+    @Test
+    fun migration11To13_roundTripsFieldsAndSpecsThroughTheNewColumns() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val fields = mapOf("heart_rate" to FieldValue(72.0, "bpm"), "score" to FieldValue(1500.0))
+            val event = migrated.eventDao().getEventById(1L)!!
+            migrated.eventDao().updateEvent(event.copy(fields = fields))
+            assertEquals(fields, migrated.eventDao().getEventById(1L)?.fields)
+
+            val type = migrated.eventTypeDao().getEventTypeById(1L)!!
+            val specs = mapOf("heart_rate" to FieldSpec("bpm"), "weight" to FieldSpec("kg", 70.0), "score" to FieldSpec())
+            migrated.eventTypeDao().updateEventType(type.copy(fieldSpecs = specs))
+            assertEquals(specs, migrated.eventTypeDao().getEventTypeById(1L)?.fieldSpecs)
+        }
+    }
+
+    @Test
+    fun migration13To14_defaultsToTheSettingsCalendarAndNotArchived() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val type = migrated.eventTypeDao().getEventTypeById(1L)!!
+            assertNull(type.calendarId)
+            assertEquals(false, type.archived)
+
+            migrated.eventTypeDao().updateEventType(type.copy(calendarId = 53L, archived = true))
+            val updated = migrated.eventTypeDao().getEventTypeById(1L)!!
+            assertEquals(53L, updated.calendarId)
+            assertEquals(true, updated.archived)
         }
     }
 

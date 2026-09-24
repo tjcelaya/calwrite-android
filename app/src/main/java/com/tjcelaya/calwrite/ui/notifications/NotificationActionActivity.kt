@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.tjcelaya.calwrite.CalWriteApplication
 import com.tjcelaya.calwrite.data.database.EventType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import com.tjcelaya.calwrite.data.database.OngoingEvent
 import com.tjcelaya.calwrite.ui.dialogs.SaveEventDialog
 import kotlinx.coroutines.launch
@@ -94,20 +95,20 @@ class NotificationActionActivity : AppCompatActivity() {
             context = this,
             ongoingEvent = ongoingEvent,
             eventType = eventType,
-            onSave = { saveEvent(ongoingEvent) },
+            onSave = { fields -> saveEvent(ongoingEvent, fields) },
             onDiscardWithoutSaving = { discardEvent(ongoingEvent) },
             onCancel = { finish() }
         )
     }
     
-    private fun saveEvent(ongoingEvent: OngoingEvent) {
+    private fun saveEvent(ongoingEvent: OngoingEvent, fields: Map<String, FieldValue>) {
         val app = application as CalWriteApplication
         val eventRepository = app.eventRepository
         val calendarRepository = app.calendarRepository
         
         lifecycleScope.launch {
             try {
-                val success = eventRepository.stopEvent(ongoingEvent.id, calendarRepository)
+                val success = eventRepository.stopEvent(ongoingEvent.id, calendarRepository, fields)
                 if (success) {
                     Log.d(TAG, "Event saved to calendar")
                 } else {

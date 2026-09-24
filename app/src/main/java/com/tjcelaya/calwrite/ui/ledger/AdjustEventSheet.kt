@@ -9,15 +9,20 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
 import com.tjcelaya.calwrite.R
 import com.tjcelaya.calwrite.data.database.EventWithType
+import com.tjcelaya.calwrite.data.database.FieldValue
+import com.tjcelaya.calwrite.ui.components.FieldsField
+import com.tjcelaya.calwrite.ui.components.LabelsField
 import java.util.Calendar
 import java.util.TimeZone
 
 /**
- * Bottom sheet for editing a recorded event's start, end and notes with Material pickers.
+ * Bottom sheet for editing a recorded event's start, end, notes, labels and fields with Material
+ * pickers.
  *
  * Instant events hide the end row entirely and save with `end == start`, which is what keeps them
  * instant; letting the user give one an end time would quietly turn it into a timed event.
@@ -28,7 +33,13 @@ object AdjustEventSheet {
         context: Context,
         fragmentManager: FragmentManager,
         item: EventWithType,
-        onSave: (startTime: Long, endTime: Long, notes: String) -> Unit
+        onSave: (
+            startTime: Long,
+            endTime: Long,
+            notes: String,
+            labels: Map<String, String>,
+            fields: Map<String, FieldValue>
+        ) -> Unit
     ) {
         val view = LayoutInflater.from(context).inflate(R.layout.sheet_adjust_event, null)
         val dialog = BottomSheetDialog(context)
@@ -46,11 +57,17 @@ object AdjustEventSheet {
         val endTimeButton: MaterialButton = view.findViewById(R.id.endTimeButton)
         val errorText: TextView = view.findViewById(R.id.adjustError)
         val notesInput: TextInputEditText = view.findViewById(R.id.notesInput)
+        val labelsLayout: TextInputLayout = view.findViewById(R.id.labelsLayout)
+        val labelsInput: TextInputEditText = view.findViewById(R.id.labelsInput)
+        val fieldsLayout: TextInputLayout = view.findViewById(R.id.fieldsLayout)
+        val fieldsInput: TextInputEditText = view.findViewById(R.id.fieldsInput)
         val cancelButton: MaterialButton = view.findViewById(R.id.cancelButton)
         val saveButton: MaterialButton = view.findViewById(R.id.saveButton)
 
         title.text = context.getString(R.string.ledger_adjust_title, item.eventTypeName)
         notesInput.setText(item.notes)
+        LabelsField.show(labelsInput, item.labels)
+        FieldsField.show(fieldsInput, item.fields)
         endRow.visibility = if (isInstant) View.GONE else View.VISIBLE
 
         fun render() {
@@ -94,7 +111,9 @@ object AdjustEventSheet {
                 return@setOnClickListener
             }
             errorText.visibility = View.GONE
-            onSave(startTime, resolvedEnd, notesInput.text?.toString().orEmpty())
+            val labels = LabelsField.read(labelsLayout, labelsInput) ?: return@setOnClickListener
+            val fields = FieldsField.read(fieldsLayout, fieldsInput) ?: return@setOnClickListener
+            onSave(startTime, resolvedEnd, notesInput.text?.toString().orEmpty(), labels, fields)
             dialog.dismiss()
         }
 

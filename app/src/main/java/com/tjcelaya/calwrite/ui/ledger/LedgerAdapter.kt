@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.tjcelaya.calwrite.R
+import com.tjcelaya.calwrite.ui.components.FieldsField
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,6 +80,7 @@ class LedgerAdapter(
         private val durationText: TextView = itemView.findViewById(R.id.durationText)
         private val syncBadge: ImageView = itemView.findViewById(R.id.syncBadge)
         private val notesText: TextView = itemView.findViewById(R.id.notesText)
+        private val labelsText: TextView = itemView.findViewById(R.id.labelsText)
         private val extendButton: MaterialButton = itemView.findViewById(R.id.extendButton)
         private val adjustButton: MaterialButton = itemView.findViewById(R.id.adjustButton)
 
@@ -137,6 +139,13 @@ class LedgerAdapter(
             } else {
                 notesText.visibility = View.VISIBLE
                 notesText.text = item.notes
+            }
+
+            if (item.labels.isEmpty() && item.fields.isEmpty()) {
+                labelsText.visibility = View.GONE
+            } else {
+                labelsText.visibility = View.VISIBLE
+                labelsText.text = FieldsField.displayText(item.fields, item.labels)
             }
 
             // Instant events are deliberately not extendable, and neither are older entries of a

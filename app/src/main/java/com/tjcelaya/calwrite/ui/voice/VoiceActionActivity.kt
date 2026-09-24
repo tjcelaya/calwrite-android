@@ -10,6 +10,7 @@ import com.tjcelaya.calwrite.MainActivity
 import com.tjcelaya.calwrite.CalWriteApplication
 import com.tjcelaya.calwrite.ui.dialogs.SaveEventDialog
 import com.tjcelaya.calwrite.data.database.EventType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import com.tjcelaya.calwrite.voice.VoiceActionHandler
 import com.tjcelaya.calwrite.voice.VoiceActionResult
 import com.tjcelaya.calwrite.voice.VoiceActionType
@@ -48,6 +49,9 @@ class VoiceActionActivity : AppCompatActivity() {
 
     /** The type the current exchange is about, so a follow-up button knows what to act on. */
     private var subjectTypeName: String? = null
+
+    /** The request being served; a candidate choice re-runs it with only the type changed. */
+    private var currentRequest: VoiceRequest? = null
     private var pendingUndo: VoiceUndo? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,6 +73,7 @@ class VoiceActionActivity : AppCompatActivity() {
             notificationService = app.notificationService
         )
         subjectTypeName = request.typeQuery
+        currentRequest = request
 
         Log.d(TAG, "Voice request: ${request.action} name=${request.typeQuery}")
         perform(request)
@@ -84,9 +89,9 @@ class VoiceActionActivity : AppCompatActivity() {
     private fun perform(request: VoiceRequest) {
         lifecycleScope.launch {
             val result = when (request.action) {
-                VoiceActionType.START -> handler.start(request.typeQuery)
-                VoiceActionType.STOP -> handler.stop(request.typeQuery)
-                VoiceActionType.RECORD -> handler.record(request.typeQuery)
+                VoiceActionType.START -> handler.start(request.typeQuery, request.labels)
+                VoiceActionType.STOP -> handler.stop(request.typeQuery, request.fields)
+                VoiceActionType.RECORD -> handler.record(request.typeQuery, request.labels, request.fields)
                 VoiceActionType.EXTEND -> handler.extend(request.typeQuery)
                 VoiceActionType.STATUS -> handler.status()
             }
@@ -100,7 +105,7 @@ class VoiceActionActivity : AppCompatActivity() {
         // The user asked for voice stops to be confirmed, so hand off to the same dialog the
         // notification path uses rather than rendering a sheet over it.
         if (result is VoiceActionResult.NeedsStopConfirmation) {
-            showStopConfirmation(result.eventId)
+            showStopConfirmation(result.eventId, currentRequest?.fields.orEmpty())
             return
         }
 
@@ -124,7 +129,7 @@ class VoiceActionActivity : AppCompatActivity() {
      * Reuses SaveEventDialog so a voice stop and a notification stop offer exactly the same
      * choices; anything else would be a second, subtly different way to end an event.
      */
-    private fun showStopConfirmation(eventId: Long) {
+    private fun showStopConfirmation(eventId: Long, fields: Map<String, FieldValue>) {
         val app = application as CalWriteApplication
         lifecycleScope.launch {
             val ongoing = app.eventRepository.getOngoingEventById(eventId)
@@ -139,9 +144,10 @@ class VoiceActionActivity : AppCompatActivity() {
                 context = this@VoiceActionActivity,
                 ongoingEvent = ongoing,
                 eventType = eventType,
-                onSave = {
+                initialFields = fields,
+                onSave = { fields ->
                     lifecycleScope.launch {
-                        runCatching { app.eventRepository.stopEvent(eventId, app.calendarRepository) }
+                        runCatching { app.eventRepository.stopEvent(eventId, app.calendarRepository, fields) }
                             .onFailure { Log.e(TAG, "Failed to save event $eventId", it) }
                         finish()
                     }
@@ -170,7 +176,8 @@ class VoiceActionActivity : AppCompatActivity() {
     /** The user picked one of the ambiguous candidates; rerun the original verb against it. */
     private fun onCandidateChosen(candidate: EventType, action: VoiceActionType) {
         subjectTypeName = candidate.name
-        perform(VoiceRequest(action, candidate.name))
+        val base = currentRequest ?: VoiceRequest(action)
+        perform(base.copy(action = action, typeQuery = candidate.name).also { currentRequest = it })
     }
 
     private fun undo() {

@@ -3,6 +3,7 @@ package com.tjcelaya.calwrite.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.tjcelaya.calwrite.data.database.EventType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import com.tjcelaya.calwrite.utils.CalendarInfo
 import com.tjcelaya.calwrite.utils.CalendarEventInfo
 import com.tjcelaya.calwrite.utils.CalendarUtils
@@ -40,8 +41,8 @@ class CalendarRepository(private val context: Context) {
      * Most recent past occurrence (DTSTART) of an event matching [title] in the selected
      * calendar, or null if none / no calendar selected. Used to seed last-occurrence on import.
      */
-    suspend fun getLastOccurrence(title: String): Long? {
-        val calendarId = getSelectedCalendarId() ?: return null
+    suspend fun getLastOccurrence(title: String, calendarOverride: Long? = null): Long? {
+        val calendarId = calendarOverride ?: getSelectedCalendarId() ?: return null
         return CalendarUtils.getLastOccurrence(context, calendarId, title)
     }
 
@@ -98,24 +99,19 @@ class CalendarRepository(private val context: Context) {
         startTime: Long,
         endTime: Long,
         notes: String?,
-        photoPath: String? = null
+        photoPath: String? = null,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
     ): Long? = withContext(Dispatchers.IO) {
-        val calendarId = getSelectedCalendarId() ?: return@withContext null
+        // A type may route its events to a calendar of its own; otherwise the one from Settings.
+        val calendarId = eventType.calendarId ?: getSelectedCalendarId() ?: return@withContext null
 
         if (!hasCalendarPermissions()) {
             return@withContext null
         }
 
         val title = eventType.name
-        val description = buildString {
-            if (!notes.isNullOrBlank()) {
-                append("Notes: $notes")
-            }
-            if (!eventType.description.isNullOrBlank()) {
-                if (isNotEmpty()) append("\n\n")
-                append("Event Type: ${eventType.description}")
-            }
-        }.takeIf { it.isNotBlank() }
+        val description = CalendarDescription.build(notes, eventType.description, labels, fields)
 
         return@withContext CalendarUtils.insertEventToCalendar(
             context,
@@ -138,22 +134,16 @@ class CalendarRepository(private val context: Context) {
         startTime: Long,
         endTime: Long,
         notes: String?,
-        photoPath: String? = null
+        photoPath: String? = null,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
     ): Boolean = withContext(Dispatchers.IO) {
         if (!hasCalendarPermissions()) {
             return@withContext false
         }
 
         val title = eventType.name
-        val description = buildString {
-            if (!notes.isNullOrBlank()) {
-                append("Notes: $notes")
-            }
-            if (!eventType.description.isNullOrBlank()) {
-                if (isNotEmpty()) append("\n\n")
-                append("Event Type: ${eventType.description}")
-            }
-        }.takeIf { it.isNotBlank() }
+        val description = CalendarDescription.build(notes, eventType.description, labels, fields)
 
         return@withContext CalendarUtils.updateCalendarEvent(
             context,
@@ -197,7 +187,9 @@ class CalendarRepository(private val context: Context) {
                     event.startTime,
                     event.endTime ?: event.startTime, // Use startTime if endTime is null (ongoing event)
                     event.notes,
-                    event.photoPath
+                    event.photoPath,
+                    event.labels,
+                    event.fields
                 )
 
                 if (calendarEventId != null) {

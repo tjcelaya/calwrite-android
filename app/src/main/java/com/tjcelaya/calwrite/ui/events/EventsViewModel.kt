@@ -15,7 +15,7 @@ class EventsViewModel(
     private val eventRepository: EventRepository
 ) : ViewModel() {
 
-    val eventTypes: LiveData<List<EventType>> = eventRepository.getAllEventTypes()
+    val eventTypes: LiveData<List<EventType>> = eventRepository.getAllEventTypesIncludingArchived()
     val ongoingEvents: LiveData<List<OngoingEvent>> = eventRepository.getAllOngoingEvents()
 
     // Combined list for unified display

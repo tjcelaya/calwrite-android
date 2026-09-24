@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AlbumConfig::class,
         FutureEvent::class
     ],
-    version = 10,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -66,10 +66,51 @@ abstract class CalWriteDatabase : RoomDatabase() {
             }
         }
 
+        // Adds key/value labels (InfluxDB-tag style): per-event `labels`, and per-type
+        // `defaultLabels` that seed new events. Stored in EventLabels text form; '' is no labels.
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE events ADD COLUMN labels TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE event_types ADD COLUMN defaultLabels TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        // Adds numeric fields (InfluxDB-field style): per-event `fields` such as heart_rate=72bpm,
+        // and per-type `fieldUnits` declaring which values recording should ask for. Stored in
+        // EventFields / EventLabels text form; '' is none.
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE events ADD COLUMN fields TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE event_types ADD COLUMN fieldUnits TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        // A declared field is a unit plus an optional starting value, not a unit alone, so the
+        // column is renamed to say so. The stored text is a superset of the old form, so rows
+        // need no rewrite.
+        private val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE event_types RENAME COLUMN fieldUnits TO fieldSpecs")
+            }
+        }
+
+        // Per-type calendar override (null = the calendar chosen in Settings) and the archived
+        // flag that keeps a type out of the recording views.
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE event_types ADD COLUMN calendarId INTEGER")
+                db.execSQL("ALTER TABLE event_types ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         // internal so migration tests can apply the same set the app ships with.
         internal val ALL_MIGRATIONS = arrayOf<Migration>(
             MIGRATION_8_9,
-            MIGRATION_9_10
+            MIGRATION_9_10,
+            MIGRATION_10_11,
+            MIGRATION_11_12,
+            MIGRATION_12_13,
+            MIGRATION_13_14
         )
 
         fun getDatabase(context: Context): CalWriteDatabase {

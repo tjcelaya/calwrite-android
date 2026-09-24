@@ -75,10 +75,8 @@ class AddEventViewModel(
     }
 
     private suspend fun getOrCreateEventType(eventTypeName: String): Long {
-        // First, check if an event type with this name already exists
-        val existingEventType = eventTypes.value?.find {
-            it.name.equals(eventTypeName, ignoreCase = true)
-        }
+        // An archived type still owns its name, so look past the visible list.
+        val existingEventType = eventRepository.findEventTypeByNameIncludingArchived(eventTypeName)
 
         return if (existingEventType != null) {
             Log.d("AddEventViewModel", "Using existing event type: ${existingEventType.name}")

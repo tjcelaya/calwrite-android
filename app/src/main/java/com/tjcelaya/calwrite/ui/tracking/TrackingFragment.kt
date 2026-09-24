@@ -1,6 +1,7 @@
 package com.tjcelaya.calwrite.ui.tracking
 
 import android.Manifest
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -35,6 +36,7 @@ import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.OngoingEvent
 import com.tjcelaya.calwrite.databinding.FragmentTrackingBinding
+import com.tjcelaya.calwrite.ui.components.RecordValuesPrompt
 import com.tjcelaya.calwrite.ui.dialogs.NotificationPermissionDialog
 import com.tjcelaya.calwrite.ui.dialogs.SaveEventDialog
 import com.tjcelaya.calwrite.ui.main.PhotoEventDialog
@@ -169,7 +171,7 @@ class TrackingFragment : Fragment() {
                 viewModel.startEvent(eventType.id)
             },
             onRecordInstantEvent = { eventType ->
-                viewModel.recordInstantaneousEvent(eventType.id)
+                recordInstant(eventType)
             },
             onStopEvent = { ongoingEvent ->
                 viewModel.showStopEventConfirmation(ongoingEvent)
@@ -428,6 +430,31 @@ class TrackingFragment : Fragment() {
         }
     }
 
+    /**
+     * Record an instant event. A type that declares fields is asked for their values first;
+     * the values are what make the event worth recording (a heart rate without the bpm is
+     * nothing), so the prompt sits before the write rather than after it.
+     */
+    private fun recordInstant(eventType: EventType) {
+        if (!RecordValuesPrompt.isNeeded(eventType)) {
+            viewModel.recordInstantaneousEvent(eventType.id)
+            return
+        }
+        val prompt = RecordValuesPrompt(requireContext(), eventType)
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.record_values_title, eventType.name))
+            .setView(prompt.view)
+            .setPositiveButton(R.string.record_values_record, null)
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+        // Wired after show() so a bad entry keeps the dialog open instead of dismissing it.
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+            val values = prompt.read() ?: return@setOnClickListener
+            dialog.dismiss()
+            viewModel.recordInstantaneousEvent(eventType.id, values.labels, values.fields)
+        }
+    }
+
     private fun showSaveConfirmationDialog(ongoingEvent: OngoingEvent) {
         // Get event type for the dialog
         viewModel.getEventTypeById(ongoingEvent.eventTypeId)?.let { eventType ->
@@ -435,7 +462,7 @@ class TrackingFragment : Fragment() {
                 context = requireContext(),
                 ongoingEvent = ongoingEvent,
                 eventType = eventType,
-                onSave = { viewModel.stopEvent(ongoingEvent) },
+                onSave = { fields -> viewModel.stopEvent(ongoingEvent, fields) },
                 onDiscardWithoutSaving = { viewModel.stopEventWithoutSaving(ongoingEvent) },
                 onCancel = { viewModel.hideStopEventConfirmation() }
             )

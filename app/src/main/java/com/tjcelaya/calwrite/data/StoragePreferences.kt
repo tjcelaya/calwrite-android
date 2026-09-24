@@ -76,6 +76,7 @@ class StoragePreferences(context: Context) {
         private const val KEY_CARD_SIZE_DP = "event_card_size_dp"
         private const val KEY_CARD_COLOR_STYLE = "event_card_color_style"
         private const val KEY_VOICE_STOP_BEHAVIOR = "voice_stop_behavior"
+        private const val KEY_CUSTOM_UNITS = "custom_units"
 
         // Card size bounds (in dp) for the main-screen card grid.
         const val CARD_SIZE_MIN_DP = 110
@@ -451,6 +452,18 @@ class StoragePreferences(context: Context) {
     }
 
     // === Voice & Assistant ===
+
+    /** Units the user has added through the type editor's unit picker, beyond the built-in ones. */
+    fun getCustomUnits(): Set<String> =
+        sharedPreferences.getStringSet(KEY_CUSTOM_UNITS, emptySet()).orEmpty()
+
+    fun addCustomUnit(unit: String) {
+        val trimmed = unit.trim()
+        if (trimmed.isEmpty()) return
+        sharedPreferences.edit()
+            .putStringSet(KEY_CUSTOM_UNITS, getCustomUnits() + trimmed)
+            .apply()
+    }
 
     fun getVoiceStopBehavior(): VoiceStopBehavior {
         return VoiceStopBehavior.fromName(

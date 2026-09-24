@@ -223,6 +223,39 @@
     <string name="ledger_adjust_start">Inicio</string>
     <string name="ledger_adjust_end">Fin</string>
     <string name="ledger_adjust_notes">Notas</string>
+    <string name="labels_hint">Etiquetas</string>
+    <string name="labels_helper">clave=valor, separadas por comas, p. ej. lugar=gimnasio,intensidad=alta</string>
+    <string name="labels_error_missing_equals">\u201c%1$s\u201d debe escribirse como clave=valor</string>
+    <string name="labels_error_empty_key">A \u201c%1$s\u201d le falta la clave</string>
+    <string name="labels_error_duplicate_key">La etiqueta \u201c%1$s\u201d aparece más de una vez</string>
+    <string name="fields_hint">Campos</string>
+    <string name="fields_helper">clave=número con unidad, separados por comas, p. ej. pulso=72bpm,puntuacion=1500</string>
+    <string name="fields_error_not_a_number">\u201c%1$s\u201d necesita un número, como 72 o 5.2km</string>
+    <string name="record_values_title">Registrar %1$s</string>
+    <string name="record_values_record">Registrar</string>
+    <string name="event_type_labels_title">Etiquetas</string>
+    <string name="event_type_labels_helper">Etiquetas con las que empieza cada evento nuevo de este tipo, como juego=tetris. Puedes cambiarlas en cada evento.</string>
+    <string name="event_type_fields_title">Campos</string>
+    <string name="event_type_fields_helper">Medidas que se te pedirán al registrar, como el pulso en bpm. Un valor predeterminado rellena la pregunta.</string>
+    <string name="attr_key_hint">Nombre</string>
+    <string name="attr_default_hint">Predeterminado</string>
+    <string name="attr_unit_hint">Unidad</string>
+    <string name="attr_unit_none">Ninguna</string>
+    <string name="attr_unit_add">Añadir una unidad nueva…</string>
+    <string name="attr_unit_add_confirm">Añadir</string>
+    <string name="attr_add_label">Añadir etiqueta</string>
+    <string name="attr_add_field">Añadir campo</string>
+    <string name="attr_remove">Quitar</string>
+    <string name="attr_error_key_required">Ponle un nombre</string>
+    <string name="attr_error_key_duplicate">Ya se usa arriba</string>
+    <string name="unit_dialog_title">Unidad nueva</string>
+    <string name="unit_dialog_hint">p. ej. reps, pasos, oz</string>
+    <string name="unit_dialog_required">Escribe una unidad</string>
+    <string name="event_type_calendar_hint">Calendario</string>
+    <string name="event_type_calendar_default">Predeterminado (%1$s)</string>
+    <string name="event_type_calendar_none">ninguno elegido</string>
+    <string name="event_type_archived">Archivado</string>
+    <string name="event_type_archived_name">%1$s (archivado)</string>
     <string name="ledger_adjust_save">Guardar cambios</string>
     <string name="ledger_adjust_end_before_start">La hora de fin debe ser posterior a la de inicio.</string>
     <string name="ledger_adjusted_message">%1$s actualizado</string>

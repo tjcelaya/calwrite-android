@@ -22,12 +22,30 @@ class AddEditEventTypeViewModel(
     private val _loadedEventType = MutableLiveData<EventType?>()
     val loadedEventType: LiveData<EventType?> = _loadedEventType
 
+    /** Every type, archived included, so the unit picker can offer units already in use. */
+    val allEventTypes: LiveData<List<EventType>> = eventRepository.getAllEventTypesIncludingArchived()
+
     fun saveEventType(eventType: EventType) {
         viewModelScope.launch {
             try {
-                // Check for duplicate names
-                if (isDuplicateName(eventType.name.trim(), eventType.id)) {
-                    _errorMessage.value = "An event type with this name already exists"
+                // Check for duplicate names, archived ones included: the name index is unique.
+                val sameName = eventRepository.findEventTypeByNameIncludingArchived(eventType.name.trim())
+                if (sameName != null && sameName.id != eventType.id) {
+                    _errorMessage.value = if (sameName.archived) {
+                        "That name belongs to an archived event type. Unarchive it from Manage events instead."
+                    } else {
+                        "An event type with this name already exists"
+                    }
+                    _saveResult.value = false
+                    return@launch
+                }
+
+                // An archived type leaves the tracking screen, so a running event of it could
+                // never be stopped from there.
+                if (eventType.archived && eventType.id != 0L &&
+                    eventRepository.getOngoingEventCountForType(eventType.id) > 0
+                ) {
+                    _errorMessage.value = "Stop the running ${eventType.name} event before archiving it"
                     _saveResult.value = false
                     return@launch
                 }
@@ -55,15 +73,6 @@ class AddEditEventTypeViewModel(
             } catch (e: Exception) {
                 _errorMessage.value = "Error loading event type: ${e.message}"
             }
-        }
-    }
-
-    private suspend fun isDuplicateName(name: String, excludeId: Long): Boolean {
-        return try {
-            val eventTypes = eventRepository.getAllEventTypesSync()
-            eventTypes.any { it.name.equals(name, ignoreCase = true) && it.id != excludeId }
-        } catch (e: Exception) {
-            false // If we can't check, allow the save and let database handle it
         }
     }
 
