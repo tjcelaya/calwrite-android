@@ -242,6 +242,7 @@ class AddEditEventTypeFragment : Fragment() {
             binding.nameEditText.setText(eventType.name)
             binding.descriptionEditText.setText(eventType.description)
             LabelsField.show(binding.defaultLabelsEditText, eventType.defaultLabels)
+            LabelsField.show(binding.fieldUnitsEditText, eventType.fieldUnits)
             binding.saveButton.text = "Update"
 
             // Restore color selection
@@ -273,6 +274,12 @@ class AddEditEventTypeFragment : Fragment() {
             binding.defaultLabelsEditText
         ) ?: return
 
+        // Declared fields share the labels syntax: key=unit, with an empty unit for a bare number.
+        val fieldUnits = LabelsField.read(
+            binding.fieldUnitsInputLayout,
+            binding.fieldUnitsEditText
+        ) ?: return
+
         val shouldBubble = binding.bubbleSwitch.isChecked
         val cadence = selectedCadence()
 
@@ -284,7 +291,8 @@ class AddEditEventTypeFragment : Fragment() {
                 colorId = selectedColorId,
                 shouldBubble = shouldBubble,
                 cadence = cadence,
-                defaultLabels = defaultLabels
+                defaultLabels = defaultLabels,
+                fieldUnits = fieldUnits
             )
         } else {
             // Updating existing event type
@@ -294,7 +302,8 @@ class AddEditEventTypeFragment : Fragment() {
                 colorId = selectedColorId,
                 shouldBubble = shouldBubble,
                 cadence = cadence,
-                defaultLabels = defaultLabels
+                defaultLabels = defaultLabels,
+                fieldUnits = fieldUnits
             )
         }
 

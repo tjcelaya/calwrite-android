@@ -147,7 +147,8 @@ class EventRepository(
         notes: String = "",
         photoPath: String? = null,
         timestamp: Long? = null,
-        labels: Map<String, String> = emptyMap()
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
     ): Long = withContext(Dispatchers.IO) {
         val eventTime = timestamp ?: System.currentTimeMillis()
 
@@ -162,7 +163,8 @@ class EventRepository(
             endTime = eventTime, // Same time for instant events
             notes = notes,
             photoPath = photoPath,
-            labels = labelsForNewEvent(eventTypeId, labels)
+            labels = labelsForNewEvent(eventTypeId, labels),
+            fields = fields
         )
         val eventId = eventDao.insertEvent(event)
         Log.d("EventRepository", "Created event with ID: $eventId")
@@ -175,7 +177,8 @@ class EventRepository(
         notes: String = "",
         photoPath: String? = null,
         timestamp: Long? = null,
-        labels: Map<String, String> = emptyMap()
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
     ): Long = withContext(Dispatchers.IO) {
         val startTime = timestamp ?: System.currentTimeMillis()
         val event = Event(
@@ -184,7 +187,8 @@ class EventRepository(
             endTime = null, // Null indicates ongoing event
             notes = notes,
             photoPath = photoPath,
-            labels = labelsForNewEvent(eventTypeId, labels)
+            labels = labelsForNewEvent(eventTypeId, labels),
+            fields = fields
         )
         eventDao.insertEvent(event)
     }
@@ -308,9 +312,13 @@ class EventRepository(
         startTimedEvent(eventTypeId, notes, uploadedPhotoPath)
     }
 
-    suspend fun completeOngoingEvent(eventId: Long): Boolean = withContext(Dispatchers.IO) {
+    suspend fun completeOngoingEvent(
+        eventId: Long,
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Boolean = withContext(Dispatchers.IO) {
         val event = eventDao.getEventById(eventId)
         if (event != null && event.isOngoing()) {
+            if (fields.isNotEmpty()) eventDao.updateEvent(event.copy(fields = fields))
             eventDao.completeEvent(eventId, System.currentTimeMillis())
             true
         } else {
@@ -423,7 +431,11 @@ class EventRepository(
         }
     }
 
-    suspend fun startEvent(eventTypeId: Long, notes: String? = null): Long {
+    suspend fun startEvent(
+        eventTypeId: Long,
+        notes: String? = null,
+        labels: Map<String, String> = emptyMap()
+    ): Long {
         // Check if calendar is set up before creating event
         // (We check this even for timed events since they'll need to sync when completed)
         // TODO: We could make this check optional for timed events if needed
@@ -434,7 +446,7 @@ class EventRepository(
             throw IllegalStateException("An event of this type is already in progress. Please stop the existing event first.")
         }
 
-        val eventId = startTimedEvent(eventTypeId, notes ?: "")
+        val eventId = startTimedEvent(eventTypeId, notes ?: "", labels = labels)
         
         // Show notification for ongoing event
         notificationService?.let { service ->
@@ -470,25 +482,39 @@ class EventRepository(
         return eventId
     }
 
-    suspend fun recordInstantaneousEvent(eventTypeId: Long, calendarRepository: CalendarRepository): Long {
+    suspend fun recordInstantaneousEvent(
+        eventTypeId: Long,
+        calendarRepository: CalendarRepository,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Long {
         // Check if calendar is set up before creating event
         if (!calendarRepository.isCalendarSetupComplete()) {
             throw IllegalStateException("No calendar selected. Please select a calendar in settings before creating events.")
         }
 
-        val eventId = createInstantEvent(eventTypeId)
+        val eventId = createInstantEvent(eventTypeId, labels = labels, fields = fields)
         // Sync instant event to calendar immediately
         syncEventToCalendar(eventId, calendarRepository)
         return eventId
     }
 
-    suspend fun stopEvent(ongoingEventId: Long, calendarRepository: CalendarRepository): Boolean {
+    /**
+     * Finish a running event and write it to the calendar. [fields] are the measurements entered
+     * at stop time (a timed event's values are usually only known once it ends); they replace
+     * any the event already carried.
+     */
+    suspend fun stopEvent(
+        ongoingEventId: Long,
+        calendarRepository: CalendarRepository,
+        fields: Map<String, FieldValue> = emptyMap()
+    ): Boolean {
         // Check if calendar is set up before completing event
         if (!calendarRepository.isCalendarSetupComplete()) {
             throw IllegalStateException("No calendar selected. Please select a calendar in settings before completing events.")
         }
 
-        val success = completeOngoingEvent(ongoingEventId)
+        val success = completeOngoingEvent(ongoingEventId, fields)
         if (success) {
             // Dismiss notification for completed event
             notificationService?.dismissOngoingEventNotification(ongoingEventId)
@@ -607,7 +633,8 @@ class EventRepository(
                     newEndTime,
                     event.notes,
                     event.photoPath,
-                    event.labels
+                    event.labels,
+                    event.fields
                 )
             } else {
                 // Never synced (or synced before calendarEventId was persisted) - sync now so the
@@ -628,7 +655,8 @@ class EventRepository(
     }
 
     /**
-     * Rewrite a recorded event's times, notes and labels, mirroring the change into the calendar copy.
+     * Rewrite a recorded event's times, notes, labels and fields, mirroring the change into the
+     * calendar copy.
      *
      * Used by the ledger's Adjust action. Refuses an end before its start rather than writing a
      * negative-duration event that the calendar would reject anyway.
@@ -639,6 +667,7 @@ class EventRepository(
         endTime: Long,
         notes: String,
         labels: Map<String, String>,
+        fields: Map<String, FieldValue>,
         calendarRepository: CalendarRepository
     ): Boolean = withContext(Dispatchers.IO) {
         val event = eventDao.getEventById(eventId) ?: return@withContext false
@@ -646,7 +675,13 @@ class EventRepository(
             Log.w("EventRepository", "adjustEvent: refusing end before start for event $eventId")
             return@withContext false
         }
-        val adjusted = event.copy(startTime = startTime, endTime = endTime, notes = notes, labels = labels)
+        val adjusted = event.copy(
+            startTime = startTime,
+            endTime = endTime,
+            notes = notes,
+            labels = labels,
+            fields = fields
+        )
         eventDao.updateEvent(adjusted)
         propagateToCalendar(adjusted, calendarRepository)
         true
@@ -688,7 +723,8 @@ class EventRepository(
                     event.endTime ?: event.startTime,
                     event.notes,
                     event.photoPath,
-                    event.labels
+                    event.labels,
+                    event.fields
                 )
                 if (!updated) Log.w("EventRepository", "Calendar update failed for event ${event.id}")
             } else {
@@ -717,7 +753,8 @@ class EventRepository(
                     result.previousEndTime,
                     event.notes,
                     event.photoPath,
-                    event.labels
+                    event.labels,
+                    event.fields
                 )
             }
             true
@@ -1466,7 +1503,8 @@ class EventRepository(
                     event.endTime ?: event.startTime,
                     event.notes,
                     combinedPhotoPath,
-                    event.labels
+                    event.labels,
+                    event.fields
                 )
 
                 if (success) {
@@ -1579,7 +1617,8 @@ class EventRepository(
                     event.endTime ?: event.startTime, // Use startTime if null (ongoing event)
                     event.notes,
                     event.photoPath,
-                    event.labels
+                    event.labels,
+                    event.fields
                 )
 
                 if (calendarEventId != null) {

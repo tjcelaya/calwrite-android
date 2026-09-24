@@ -39,7 +39,10 @@ data class EventType(
     val createdAt: Long = System.currentTimeMillis(),
     val cadence: Cadence = Cadence.BOTH, // Which record actions are available for this event type
     // Labels every new event of this type starts with; editable per event afterwards.
-    val defaultLabels: Map<String, String> = emptyMap()
+    val defaultLabels: Map<String, String> = emptyMap(),
+    // Measurements every event of this type is asked for when recorded, as key -> unit
+    // (e.g. heart_rate -> bpm, score -> ""). A prompt shows one input per entry.
+    val fieldUnits: Map<String, String> = emptyMap()
 ) {
     /**
      * Get the display color for this event type

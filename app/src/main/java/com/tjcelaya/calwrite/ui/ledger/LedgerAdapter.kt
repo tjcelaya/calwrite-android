@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.tjcelaya.calwrite.R
-import com.tjcelaya.calwrite.ui.components.LabelsField
+import com.tjcelaya.calwrite.ui.components.FieldsField
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -141,11 +141,11 @@ class LedgerAdapter(
                 notesText.text = item.notes
             }
 
-            if (item.labels.isEmpty()) {
+            if (item.labels.isEmpty() && item.fields.isEmpty()) {
                 labelsText.visibility = View.GONE
             } else {
                 labelsText.visibility = View.VISIBLE
-                labelsText.text = LabelsField.displayText(item.labels)
+                labelsText.text = FieldsField.displayText(item.fields, item.labels)
             }
 
             // Instant events are deliberately not extendable, and neither are older entries of a

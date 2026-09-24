@@ -1,11 +1,24 @@
 package com.tjcelaya.calwrite.voice
 
+import com.tjcelaya.calwrite.data.database.EventFields
+import com.tjcelaya.calwrite.data.database.EventLabels
+import com.tjcelaya.calwrite.data.database.FieldValue
 import java.net.URLDecoder
 
 /** The five things any voice surface can ask CalWrite to do. */
 enum class VoiceActionType { START, STOP, RECORD, EXTEND, STATUS }
 
-data class VoiceRequest(val action: VoiceActionType, val typeQuery: String? = null)
+/**
+ * [labels] and [fields] ride along on record, start and stop so an automation can log a
+ * measurement in one call (`record?name=Heart%20rate&fields=heart_rate=72bpm`). Assistant's
+ * built-in intents carry neither, so they are empty on that path.
+ */
+data class VoiceRequest(
+    val action: VoiceActionType,
+    val typeQuery: String? = null,
+    val labels: Map<String, String> = emptyMap(),
+    val fields: Map<String, FieldValue> = emptyMap()
+)
 
 /**
  * Turns the several shapes an incoming voice intent can take into one [VoiceRequest].
@@ -36,7 +49,11 @@ object VoiceIntentParser {
     /** Deep link query parameter, deliberately identical to [EXTRA_TYPE_NAME]. */
     const val PARAM_NAME = "name"
 
-    /** `calwrite://action/{start|stop|record|extend|status}?name=…` */
+    /** Deep link query parameters in [EventLabels] / [EventFields] syntax (URL-encoded). */
+    const val PARAM_LABELS = "labels"
+    const val PARAM_FIELDS = "fields"
+
+    /** `calwrite://action/{start|stop|record|extend|status}?name=…&labels=…&fields=…` */
     fun fromDeepLink(uri: String?): VoiceRequest? {
         val rest = uri?.trim()?.takeIf { it.startsWith("$SCHEME://", ignoreCase = true) }
             ?.substring(SCHEME.length + 3)
@@ -55,7 +72,14 @@ object VoiceIntentParser {
         } ?: return null
 
         val action = actionTypeForVerb(verb) ?: return null
-        return VoiceRequest(action, queryParameter(query, PARAM_NAME))
+        // Malformed label or field text is dropped rather than failing the whole request: the
+        // verb and the type are still worth acting on, and there is no one to show an error to.
+        return VoiceRequest(
+            action,
+            queryParameter(query, PARAM_NAME),
+            labels = EventLabels.parseOrEmpty(queryParameter(query, PARAM_LABELS)),
+            fields = EventFields.parseOrEmpty(queryParameter(query, PARAM_FIELDS))
+        )
     }
 
     /** An Assistant capability intent, or anything else that names the verb in its action. */

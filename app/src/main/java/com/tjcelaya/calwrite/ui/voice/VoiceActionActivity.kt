@@ -84,9 +84,9 @@ class VoiceActionActivity : AppCompatActivity() {
     private fun perform(request: VoiceRequest) {
         lifecycleScope.launch {
             val result = when (request.action) {
-                VoiceActionType.START -> handler.start(request.typeQuery)
-                VoiceActionType.STOP -> handler.stop(request.typeQuery)
-                VoiceActionType.RECORD -> handler.record(request.typeQuery)
+                VoiceActionType.START -> handler.start(request.typeQuery, request.labels)
+                VoiceActionType.STOP -> handler.stop(request.typeQuery, request.fields)
+                VoiceActionType.RECORD -> handler.record(request.typeQuery, request.labels, request.fields)
                 VoiceActionType.EXTEND -> handler.extend(request.typeQuery)
                 VoiceActionType.STATUS -> handler.status()
             }
@@ -139,9 +139,9 @@ class VoiceActionActivity : AppCompatActivity() {
                 context = this@VoiceActionActivity,
                 ongoingEvent = ongoing,
                 eventType = eventType,
-                onSave = {
+                onSave = { fields ->
                     lifecycleScope.launch {
-                        runCatching { app.eventRepository.stopEvent(eventId, app.calendarRepository) }
+                        runCatching { app.eventRepository.stopEvent(eventId, app.calendarRepository, fields) }
                             .onFailure { Log.e(TAG, "Failed to save event $eventId", it) }
                         finish()
                     }

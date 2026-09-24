@@ -18,4 +18,10 @@ class Converters {
 
     @TypeConverter
     fun toLabels(value: String?): Map<String, String> = EventLabels.parseOrEmpty(value)
+
+    @TypeConverter
+    fun fromFields(fields: Map<String, FieldValue>): String = EventFields.format(fields)
+
+    @TypeConverter
+    fun toFields(value: String?): Map<String, FieldValue> = EventFields.parseOrEmpty(value)
 }

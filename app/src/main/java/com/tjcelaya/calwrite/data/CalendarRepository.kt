@@ -3,6 +3,7 @@ package com.tjcelaya.calwrite.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.tjcelaya.calwrite.data.database.EventType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import com.tjcelaya.calwrite.utils.CalendarInfo
 import com.tjcelaya.calwrite.utils.CalendarEventInfo
 import com.tjcelaya.calwrite.utils.CalendarUtils
@@ -99,7 +100,8 @@ class CalendarRepository(private val context: Context) {
         endTime: Long,
         notes: String?,
         photoPath: String? = null,
-        labels: Map<String, String> = emptyMap()
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
     ): Long? = withContext(Dispatchers.IO) {
         val calendarId = getSelectedCalendarId() ?: return@withContext null
 
@@ -108,7 +110,7 @@ class CalendarRepository(private val context: Context) {
         }
 
         val title = eventType.name
-        val description = CalendarDescription.build(notes, eventType.description, labels)
+        val description = CalendarDescription.build(notes, eventType.description, labels, fields)
 
         return@withContext CalendarUtils.insertEventToCalendar(
             context,
@@ -132,14 +134,15 @@ class CalendarRepository(private val context: Context) {
         endTime: Long,
         notes: String?,
         photoPath: String? = null,
-        labels: Map<String, String> = emptyMap()
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
     ): Boolean = withContext(Dispatchers.IO) {
         if (!hasCalendarPermissions()) {
             return@withContext false
         }
 
         val title = eventType.name
-        val description = CalendarDescription.build(notes, eventType.description, labels)
+        val description = CalendarDescription.build(notes, eventType.description, labels, fields)
 
         return@withContext CalendarUtils.updateCalendarEvent(
             context,
@@ -184,7 +187,8 @@ class CalendarRepository(private val context: Context) {
                     event.endTime ?: event.startTime, // Use startTime if endTime is null (ongoing event)
                     event.notes,
                     event.photoPath,
-                    event.labels
+                    event.labels,
+                    event.fields
                 )
 
                 if (calendarEventId != null) {

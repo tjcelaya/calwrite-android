@@ -11,7 +11,9 @@ import androidx.lifecycle.MediatorLiveData
 import com.tjcelaya.calwrite.data.EventRepository
 import com.tjcelaya.calwrite.data.CalendarRepository
 import com.tjcelaya.calwrite.data.database.EventType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import com.tjcelaya.calwrite.data.database.OngoingEvent
+import com.tjcelaya.calwrite.ui.components.RecordValuesPrompt
 import com.tjcelaya.calwrite.data.database.FutureEvent
 import kotlinx.coroutines.launch
 
@@ -193,11 +195,19 @@ class TrackingViewModel(
         }
     }
 
-    fun recordInstantaneousEvent(eventTypeId: Long) {
+    fun recordInstantaneousEvent(
+        eventTypeId: Long,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
+    ) {
         viewModelScope.launch {
             try {
-                eventRepository.recordInstantaneousEvent(eventTypeId, calendarRepository = calendarRepository)
-                _message.value = "Instant event recorded"
+                eventRepository.recordInstantaneousEvent(eventTypeId, calendarRepository, labels, fields)
+                _message.value = if (fields.isEmpty()) {
+                    "Instant event recorded"
+                } else {
+                    "Recorded ${RecordValuesPrompt.summary(fields)}"
+                }
             } catch (e: Exception) {
                 _message.value = "Error recording event: ${e.message}"
             }
@@ -216,10 +226,10 @@ class TrackingViewModel(
         return eventTypes.value?.find { it.id == eventTypeId }
     }
 
-    fun stopEvent(ongoingEvent: OngoingEvent) {
+    fun stopEvent(ongoingEvent: OngoingEvent, fields: Map<String, FieldValue> = emptyMap()) {
         viewModelScope.launch {
             try {
-                val success = eventRepository.stopEvent(ongoingEvent.id, calendarRepository)
+                val success = eventRepository.stopEvent(ongoingEvent.id, calendarRepository, fields)
                 if (success) {
                     _message.value = "Event stopped and saved to calendar"
                 } else {

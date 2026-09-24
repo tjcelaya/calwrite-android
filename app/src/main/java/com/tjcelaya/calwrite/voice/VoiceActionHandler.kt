@@ -9,6 +9,7 @@ import com.tjcelaya.calwrite.data.ExtendResult
 import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.VoiceStopBehavior
 import com.tjcelaya.calwrite.data.database.EventType
+import com.tjcelaya.calwrite.data.database.FieldValue
 import com.tjcelaya.calwrite.ui.notifications.NotificationService
 
 /**
@@ -34,7 +35,10 @@ class VoiceActionHandler(
         const val TAG = "VoiceActionHandler"
     }
 
-    suspend fun start(typeQuery: String?): VoiceActionResult = guarded {
+    suspend fun start(
+        typeQuery: String?,
+        labels: Map<String, String> = emptyMap()
+    ): VoiceActionResult = guarded {
         when (val resolution = resolve(typeQuery)) {
             is Resolved.Failed -> resolution.result
             is Resolved.Found -> {
@@ -42,7 +46,7 @@ class VoiceActionHandler(
                 if (eventRepository.getOngoingEventCountForType(type.id) > 0) {
                     VoiceActionResult.Failure(string(R.string.voice_already_running, type.name))
                 } else {
-                    val eventId = eventRepository.startEvent(type.id)
+                    val eventId = eventRepository.startEvent(type.id, labels = labels)
                     VoiceActionResult.Success(
                         message = string(R.string.voice_started, type.name),
                         eventTypeName = type.name,
@@ -54,7 +58,10 @@ class VoiceActionHandler(
         }
     }
 
-    suspend fun stop(typeQuery: String?): VoiceActionResult = guarded {
+    suspend fun stop(
+        typeQuery: String?,
+        fields: Map<String, FieldValue> = emptyMap()
+    ): VoiceActionResult = guarded {
         if (!calendarRepository.isCalendarSetupComplete()) {
             return@guarded VoiceActionResult.Failure(string(R.string.voice_no_calendar))
         }
@@ -93,7 +100,7 @@ class VoiceActionHandler(
             return@guarded VoiceActionResult.NeedsStopConfirmation(target.id, name)
         }
 
-        eventRepository.stopEvent(target.id, calendarRepository)
+        eventRepository.stopEvent(target.id, calendarRepository, fields)
 
         // stopEvent() reports whether the event was completed locally, not whether it reached the
         // calendar - it swallows sync failures. Voice has no other feedback channel, so claiming
@@ -121,7 +128,11 @@ class VoiceActionHandler(
         )
     }
 
-    suspend fun record(typeQuery: String?): VoiceActionResult = guarded {
+    suspend fun record(
+        typeQuery: String?,
+        labels: Map<String, String> = emptyMap(),
+        fields: Map<String, FieldValue> = emptyMap()
+    ): VoiceActionResult = guarded {
         if (!calendarRepository.isCalendarSetupComplete()) {
             return@guarded VoiceActionResult.Failure(string(R.string.voice_no_calendar))
         }
@@ -129,7 +140,7 @@ class VoiceActionHandler(
             is Resolved.Failed -> resolution.result
             is Resolved.Found -> {
                 val type = resolution.eventType
-                val eventId = eventRepository.recordInstantaneousEvent(type.id, calendarRepository)
+                val eventId = eventRepository.recordInstantaneousEvent(type.id, calendarRepository, labels, fields)
                 val reachedCalendar =
                     eventRepository.getEventByIdOrNull(eventId)?.calendarEventId != null
                 VoiceActionResult.Success(

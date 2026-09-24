@@ -230,6 +230,13 @@
     <string name="labels_error_duplicate_key">The label \u201c%1$s\u201d appears more than once</string>
     <string name="event_type_default_labels_hint">Default labels (optional)</string>
     <string name="event_type_default_labels_helper">Every new event of this type starts with these; you can change them per event. key=value, comma separated.</string>
+    <string name="fields_hint">Fields</string>
+    <string name="fields_helper">key=number with unit, comma separated, e.g. heart_rate=72bpm,score=1500</string>
+    <string name="fields_error_not_a_number">\u201c%1$s\u201d needs a number, like 72 or 5.2km</string>
+    <string name="event_type_field_units_hint">Fields to record (optional)</string>
+    <string name="event_type_field_units_helper">Values you\'ll be asked for when recording. key=unit, comma separated, e.g. heart_rate=bpm,score= (leave the unit empty for a plain number).</string>
+    <string name="record_values_title">Record %1$s</string>
+    <string name="record_values_record">Record</string>
     <string name="ledger_adjust_save">Save changes</string>
     <string name="ledger_adjust_end_before_start">The end time must be after the start time.</string>
     <string name="ledger_adjusted_message">Updated %1$s</string>

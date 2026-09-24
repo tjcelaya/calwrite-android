@@ -252,6 +252,7 @@ future-proofing, not a working feature.
   adb shell am start -a android.intent.action.VIEW -d "calwrite://action/stop?name=Exercise"
   adb shell am start -a android.intent.action.VIEW -d "calwrite://action/extend"
   adb shell am start -a android.intent.action.VIEW -d "calwrite://action/status"
+  adb shell am start -a android.intent.action.VIEW -d "calwrite://action/record?name=HR&fields=heart_rate=72bpm"
   ```
 - **Assistant:** verify the shortcut route by voice ("Hey Google, start Exercise on CalWrite");
   verify BII bindings with Android Studio's App Actions Test Tool.

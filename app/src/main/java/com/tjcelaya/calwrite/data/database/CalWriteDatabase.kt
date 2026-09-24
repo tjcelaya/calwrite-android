@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AlbumConfig::class,
         FutureEvent::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -75,11 +75,22 @@ abstract class CalWriteDatabase : RoomDatabase() {
             }
         }
 
+        // Adds numeric fields (InfluxDB-field style): per-event `fields` such as heart_rate=72bpm,
+        // and per-type `fieldUnits` declaring which values recording should ask for. Stored in
+        // EventFields / EventLabels text form; '' is none.
+        private val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE events ADD COLUMN fields TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE event_types ADD COLUMN fieldUnits TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         // internal so migration tests can apply the same set the app ships with.
         internal val ALL_MIGRATIONS = arrayOf<Migration>(
             MIGRATION_8_9,
             MIGRATION_9_10,
-            MIGRATION_10_11
+            MIGRATION_10_11,
+            MIGRATION_11_12
         )
 
         fun getDatabase(context: Context): CalWriteDatabase {

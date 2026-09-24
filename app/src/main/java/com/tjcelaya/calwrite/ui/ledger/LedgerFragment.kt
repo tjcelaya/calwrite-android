@@ -213,9 +213,9 @@ class LedgerFragment : Fragment() {
             context = requireContext(),
             fragmentManager = childFragmentManager,
             item = row.eventWithType
-        ) { startTime, endTime, notes, labels ->
+        ) { startTime, endTime, notes, labels, fields ->
             val name = row.eventWithType.eventTypeName
-            viewModel.adjust(row.id, startTime, endTime, notes, labels) { ok ->
+            viewModel.adjust(row.id, startTime, endTime, notes, labels, fields) { ok ->
                 if (!isAdded || _binding == null) return@adjust
                 val message = if (ok) {
                     getString(R.string.ledger_adjusted_message, name)

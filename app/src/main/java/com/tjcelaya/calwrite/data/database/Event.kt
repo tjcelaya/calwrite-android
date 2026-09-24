@@ -39,7 +39,10 @@ data class Event(
     val calendarEventId: Long? = null, // CalendarContract event id once synced, null while unsynced
     // Key/value labels for this occurrence (InfluxDB-tag style), seeded from the type's defaults.
     // Stored in EventLabels text form; see EventLabels for the syntax.
-    val labels: Map<String, String> = emptyMap()
+    val labels: Map<String, String> = emptyMap(),
+    // Numeric measurements for this occurrence (InfluxDB-field style), e.g. heart_rate=72bpm.
+    // Stored in EventFields text form; see EventFields for the syntax.
+    val fields: Map<String, FieldValue> = emptyMap()
 ) {
     /**
      * @return true if this is an instant event (start == end)

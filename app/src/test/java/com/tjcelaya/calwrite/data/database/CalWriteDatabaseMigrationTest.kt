@@ -17,8 +17,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Exercises the migrations from schema 9 onwards: 9 -> 10 adds `events.calendarEventId`, and
- * 10 -> 11 adds `events.labels` and `event_types.defaultLabels`.
+ * Exercises the migrations from schema 9 onwards: 9 -> 10 adds `events.calendarEventId`,
+ * 10 -> 11 adds `events.labels` and `event_types.defaultLabels`, and 11 -> 12 adds
+ * `events.fields` and `event_types.fieldUnits`.
  *
  * Room's MigrationTestHelper needs the schema JSON on the instrumentation classpath, so rather
  * than requiring a device this builds the v9 database directly from the DDL recorded in
@@ -163,6 +164,49 @@ class CalWriteDatabaseMigrationTest {
             assertEquals(
                 mapOf("kind" to "cardio"),
                 migrated.eventTypeDao().getEventTypeById(1L)?.defaultLabels
+            )
+        }
+    }
+
+    @Test
+    fun migration11To12_givesExistingEventsAndTypesNoFields() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            assertEquals(emptyMap<String, FieldValue>(), migrated.eventDao().getEventById(1L)?.fields)
+            assertEquals(emptyMap<String, String>(), migrated.eventTypeDao().getEventTypeById(1L)?.fieldUnits)
+        }
+    }
+
+    @Test
+    fun migration11To12_roundTripsFieldsThroughTheNewColumns() {
+        createV9DatabaseWith(
+            eventTypeName = "Exercise",
+            eventStartTime = 1_000L,
+            eventEndTime = 5_000L,
+            notes = ""
+        )
+
+        val migrated = openWithMigrations()
+
+        runBlocking {
+            val fields = mapOf("heart_rate" to FieldValue(72.0, "bpm"), "score" to FieldValue(1500.0))
+            val event = migrated.eventDao().getEventById(1L)!!
+            migrated.eventDao().updateEvent(event.copy(fields = fields))
+            assertEquals(fields, migrated.eventDao().getEventById(1L)?.fields)
+
+            val type = migrated.eventTypeDao().getEventTypeById(1L)!!
+            migrated.eventTypeDao().updateEventType(type.copy(fieldUnits = mapOf("heart_rate" to "bpm")))
+            assertEquals(
+                mapOf("heart_rate" to "bpm"),
+                migrated.eventTypeDao().getEventTypeById(1L)?.fieldUnits
             )
         }
     }

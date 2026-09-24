@@ -136,6 +136,7 @@ class ConfigBackupManager(
                     .put("createdAt", type.createdAt)
                     .put("cadence", type.cadence.name)
                     .put("defaultLabels", EventLabels.format(type.defaultLabels))
+                    .put("fieldUnits", EventLabels.format(type.fieldUnits))
             )
         }
         root.put("eventTypes", eventTypes)
@@ -239,7 +240,8 @@ class ConfigBackupManager(
                     sortOrder = o.optInt("sortOrder", 0),
                     createdAt = o.optLong("createdAt", System.currentTimeMillis()),
                     cadence = Cadence.fromName(o.optStringOrNull("cadence")),
-                    defaultLabels = EventLabels.parseOrEmpty(o.optStringOrNull("defaultLabels"))
+                    defaultLabels = EventLabels.parseOrEmpty(o.optStringOrNull("defaultLabels")),
+                    fieldUnits = EventLabels.parseOrEmpty(o.optStringOrNull("fieldUnits"))
                 )
             )
         }
