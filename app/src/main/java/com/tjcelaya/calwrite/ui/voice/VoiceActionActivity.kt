@@ -2,12 +2,15 @@ package com.tjcelaya.calwrite.ui.voice
 
 import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.tjcelaya.calwrite.MainActivity
 import com.tjcelaya.calwrite.CalWriteApplication
+import com.tjcelaya.calwrite.R
+import com.tjcelaya.calwrite.data.Feature
 import com.tjcelaya.calwrite.ui.dialogs.SaveEventDialog
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.FieldValue
@@ -65,6 +68,13 @@ class VoiceActionActivity : AppCompatActivity() {
         }
 
         val app = application as CalWriteApplication
+        if (!app.storagePreferences.isFeatureEnabled(Feature.VOICE)) {
+            // The component is normally disabled while the feature is off; this covers an
+            // intent that was already in flight when it was switched off.
+            Toast.makeText(this, R.string.voice_feature_off, Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
         handler = VoiceActionHandler(
             context = this,
             eventRepository = app.eventRepository,

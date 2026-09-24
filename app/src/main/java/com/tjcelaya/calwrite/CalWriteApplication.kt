@@ -94,7 +94,7 @@ class CalWriteApplication : Application() {
         notificationService = NotificationService(this, storagePreferences)
         eventRepository = EventRepository(database, driveRepository, photosRepository, storagePreferences, notificationService)
         configBackupManager = ConfigBackupManager(database, storagePreferences, calendarRepository, driveRepository)
-        voiceShortcutPublisher = VoiceShortcutPublisher(this, eventRepository)
+        voiceShortcutPublisher = VoiceShortcutPublisher(this, eventRepository, storagePreferences)
 
         Log.d(TAG, "Repositories initialized")
     }

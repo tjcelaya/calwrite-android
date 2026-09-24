@@ -32,6 +32,7 @@ import com.tjcelaya.calwrite.R
 import com.tjcelaya.calwrite.CalWriteApplication
 import com.tjcelaya.calwrite.data.CardColorStyle
 import com.tjcelaya.calwrite.data.EventViewMode
+import com.tjcelaya.calwrite.data.Feature
 import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.OngoingEvent
@@ -614,9 +615,12 @@ class TrackingFragment : Fragment() {
             android.graphics.Color.parseColor("#1976D2")
         )
         
-        // Show and animate menu items (from bottom to top)
-        animateFabMenuItem(binding.fabImage, 0)
-        animateFabMenuItem(binding.fabCamera, 50)
+        // Show and animate menu items (from bottom to top). Photo actions only exist while
+        // the photos feature is on; the other two keep their slots so the menu doesn't jump.
+        if (storagePreferences.isFeatureEnabled(Feature.PHOTOS)) {
+            animateFabMenuItem(binding.fabImage, 0)
+            animateFabMenuItem(binding.fabCamera, 50)
+        }
         animateFabMenuItem(binding.fabScheduleEvent, 100)
         animateFabMenuItem(binding.fabNewEvent, 150)
     }
@@ -672,6 +676,7 @@ class TrackingFragment : Fragment() {
     }
 
     private fun checkForSharedPhoto() {
+        if (!storagePreferences.isFeatureEnabled(Feature.PHOTOS)) return
         val activity = requireActivity()
         val sharedPhotoPath = activity.intent?.getStringExtra(MainActivity.EXTRA_SHARED_PHOTO_PATH)
 

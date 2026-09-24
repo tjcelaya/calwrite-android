@@ -256,6 +256,13 @@
     <string name="event_type_calendar_none">ninguno elegido</string>
     <string name="event_type_archived">Archivado</string>
     <string name="event_type_archived_name">%1$s (archivado)</string>
+    <string name="settings_features_title">Funciones</string>
+    <string name="settings_features_description">Partes opcionales de la app, desactivadas hasta que las actives. Cada una añade sus propios ajustes abajo.</string>
+    <string name="settings_feature_photos">Fotos: adjuntar imágenes a los eventos</string>
+    <string name="settings_feature_voice">Voz y Asistente</string>
+    <string name="settings_feature_bubbles">Notificaciones en burbuja</string>
+    <string name="voice_feature_off">El control por voz está desactivado. Actívalo en los ajustes de CalWrite.</string>
+    <string name="photos_feature_off">Las fotos están desactivadas. Actívalas en los ajustes de CalWrite para adjuntar esta imagen.</string>
     <string name="ledger_adjust_save">Guardar cambios</string>
     <string name="ledger_adjust_end_before_start">La hora de fin debe ser posterior a la de inicio.</string>
     <string name="ledger_adjusted_message">%1$s actualizado</string>

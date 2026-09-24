@@ -21,6 +21,7 @@ import com.tjcelaya.calwrite.data.CalendarRepository
 import com.tjcelaya.calwrite.data.CardColorStyle
 import com.tjcelaya.calwrite.data.ConfigBackupManager
 import com.tjcelaya.calwrite.data.DriveRepository
+import com.tjcelaya.calwrite.data.Feature
 import com.tjcelaya.calwrite.data.InstantEventIcon
 import com.tjcelaya.calwrite.data.PhotosConnectionResult
 import com.tjcelaya.calwrite.data.PhotosRepository
@@ -107,6 +108,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupUI() {
+        setupFeaturesSection()
         setupCalendarSection()
         setupEnhancedCalendarSection()
         setupBubbleSection()
@@ -117,6 +119,43 @@ class SettingsFragment : Fragment() {
         setupInstantEventIconSelection()
         setupCardColorStyleSelection()
         setupBackupSection()
+    }
+
+    /**
+     * Feature switches. Each section they govern is hidden until its switch is on, so a fresh
+     * install shows only the core calendar-writing app.
+     */
+    private fun setupFeaturesSection() {
+        val app = requireActivity().application as CalWriteApplication
+        val switches = mapOf(
+            Feature.PHOTOS to binding.featurePhotosSwitch,
+            Feature.VOICE to binding.featureVoiceSwitch,
+            Feature.BUBBLES to binding.featureBubblesSwitch
+        )
+        switches.forEach { (feature, switch) ->
+            switch.isChecked = storagePreferences.isFeatureEnabled(feature)
+            switch.setOnCheckedChangeListener { _, checked ->
+                storagePreferences.setFeatureEnabled(feature, checked)
+                applyFeatureVisibility()
+                when (feature) {
+                    // Shortcuts and the Assistant entry point follow the flag right away, so
+                    // a launcher long-press or "Hey Google" cannot reach a feature that is off.
+                    Feature.VOICE -> viewLifecycleOwner.lifecycleScope.launch { app.voiceShortcutPublisher.publish() }
+                    Feature.BUBBLES -> updateBubbleStatus()
+                    Feature.PHOTOS -> Unit
+                }
+            }
+        }
+        applyFeatureVisibility()
+    }
+
+    private fun applyFeatureVisibility() {
+        fun show(view: View, feature: Feature) {
+            view.visibility = if (storagePreferences.isFeatureEnabled(feature)) View.VISIBLE else View.GONE
+        }
+        show(binding.sectionPhotos, Feature.PHOTOS)
+        show(binding.sectionVoice, Feature.VOICE)
+        show(binding.sectionBubbles, Feature.BUBBLES)
     }
 
     private fun setupCalendarSection() {
@@ -206,7 +245,7 @@ class SettingsFragment : Fragment() {
 
     private fun setupBubbleSection() {
         // Load current state
-        val currentMode = storagePreferences.getBubbleMode()
+        val currentMode = storagePreferences.getChosenBubbleMode()
         when (currentMode) {
             com.tjcelaya.calwrite.data.BubbleMode.NEVER -> binding.bubbleModeNever.isChecked = true
             com.tjcelaya.calwrite.data.BubbleMode.SELECTED -> binding.bubbleModeSelected.isChecked = true
@@ -238,7 +277,7 @@ class SettingsFragment : Fragment() {
     }
     
     private fun updateBubbleStatus() {
-        val mode = storagePreferences.getBubbleMode()
+        val mode = storagePreferences.getChosenBubbleMode()
         
         binding.bubblesStatus.text = when (mode) {
             com.tjcelaya.calwrite.data.BubbleMode.NEVER -> "Silent notifications only"

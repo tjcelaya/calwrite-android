@@ -256,6 +256,13 @@
     <string name="event_type_calendar_none">none chosen</string>
     <string name="event_type_archived">Archived</string>
     <string name="event_type_archived_name">%1$s (archived)</string>
+    <string name="settings_features_title">Features</string>
+    <string name="settings_features_description">Optional parts of the app, off until you turn them on. Each one adds its own settings below.</string>
+    <string name="settings_feature_photos">Photos: attach pictures to events</string>
+    <string name="settings_feature_voice">Voice &amp; Assistant</string>
+    <string name="settings_feature_bubbles">Bubble notifications</string>
+    <string name="voice_feature_off">Voice control is turned off. Enable it in CalWrite settings.</string>
+    <string name="photos_feature_off">Photos are turned off. Enable them in CalWrite settings to attach this image.</string>
     <string name="ledger_adjust_save">Save changes</string>
     <string name="ledger_adjust_end_before_start">The end time must be after the start time.</string>
     <string name="ledger_adjusted_message">Updated %1$s</string>

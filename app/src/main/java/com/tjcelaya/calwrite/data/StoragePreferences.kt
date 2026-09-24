@@ -387,7 +387,23 @@ class StoragePreferences(context: Context) {
      * Get the bubble mode setting
      * Default is NEVER (silent notifications)
      */
+    // === Feature flags ===
+
+    fun isFeatureEnabled(feature: Feature): Boolean =
+        sharedPreferences.getBoolean(feature.prefKey, false)
+
+    fun setFeatureEnabled(feature: Feature, enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(feature.prefKey, enabled).apply()
+    }
+
+    /** The chosen mode, or NEVER while the bubbles feature is off; the choice itself is kept. */
     fun getBubbleMode(): BubbleMode {
+        if (!isFeatureEnabled(Feature.BUBBLES)) return BubbleMode.NEVER
+        return getChosenBubbleMode()
+    }
+
+    /** The mode as set in Settings, regardless of the feature flag; what the radio group shows. */
+    fun getChosenBubbleMode(): BubbleMode {
         val modeName = sharedPreferences.getString(KEY_BUBBLE_MODE, BubbleMode.NEVER.name)
         return try {
             BubbleMode.valueOf(modeName ?: BubbleMode.NEVER.name)

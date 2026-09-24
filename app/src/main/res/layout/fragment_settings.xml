@@ -134,6 +134,65 @@ Requires internet connection and Google account authentication."
             android:layout_marginBottom="24dp"
             android:background="?android:attr/listDivider" />
 
+        <!-- Optional features; each switch reveals its section below -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/settings_features_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="?android:attr/textColorPrimary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/settings_features_description"
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/feature_photos_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:text="@string/settings_feature_photos" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/feature_voice_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:text="@string/settings_feature_voice" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/feature_bubbles_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="24dp"
+            android:text="@string/settings_feature_bubbles" />
+
+        <LinearLayout
+            android:id="@+id/section_bubbles"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="24dp"
+            android:background="?android:attr/listDivider" />
+
         <!-- Bubble Notifications Section -->
         <TextView
             android:layout_width="match_parent"
@@ -212,6 +271,14 @@ Requires internet connection and Google account authentication."
                 android:layout_marginTop="8dp" />
 
         </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_voice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- Divider -->
         <View
@@ -438,6 +505,14 @@ Requires internet connection and Google account authentication."
                 android:textColor="?android:attr/textColorSecondary" />
 
         </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_photos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <!-- Divider -->
         <View
@@ -779,6 +854,8 @@ Requires internet connection and Google account authentication."
                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                 android:textColor="?android:attr/textColorSecondary"
                 android:layout_marginTop="8dp" />
+
+        </LinearLayout>
 
         </LinearLayout>
 

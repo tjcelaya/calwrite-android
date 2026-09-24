@@ -1,12 +1,16 @@
 package com.tjcelaya.calwrite.ui.voice
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.tjcelaya.calwrite.R
 import com.tjcelaya.calwrite.data.EventRepository
+import com.tjcelaya.calwrite.data.Feature
+import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.voice.VoiceActionType
 import com.tjcelaya.calwrite.voice.VoiceShortcutPlan
@@ -21,7 +25,8 @@ import com.tjcelaya.calwrite.voice.VoiceShortcutPlan
  */
 class VoiceShortcutPublisher(
     private val context: Context,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val storagePreferences: StoragePreferences
 ) {
 
     private companion object {
@@ -40,8 +45,18 @@ class VoiceShortcutPublisher(
         const val PARAMETER_NAME = "exercise.name"
     }
 
-    /** Safe to call repeatedly; run it again whenever event types change. */
+    /**
+     * Safe to call repeatedly; run it again whenever event types change or the voice feature
+     * is toggled. With the feature off this removes every voice shortcut and disables
+     * [VoiceActionActivity], so neither the launcher nor Assistant can reach voice control.
+     */
     suspend fun publish() {
+        val enabled = storagePreferences.isFeatureEnabled(Feature.VOICE)
+        setEntryPointEnabled(enabled)
+        if (!enabled) {
+            removeStale(emptySet())
+            return
+        }
         try {
             val types = eventRepository.getAllEventTypesSync()
             val lastUsed = types.associate { it.id to eventRepository.getLastCompletedEventTime(it.id) }
@@ -74,6 +89,19 @@ class VoiceShortcutPublisher(
         } catch (e: Exception) {
             // Shortcuts are an enhancement; never let them take down application startup.
             Log.e(TAG, "Failed to publish voice shortcuts", e)
+        }
+    }
+
+    private fun setEntryPointEnabled(enabled: Boolean) {
+        val component = ComponentName(context, VoiceActionActivity::class.java)
+        val state = if (enabled) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        } else {
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+        }
+        if (context.packageManager.getComponentEnabledSetting(component) != state) {
+            context.packageManager.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+            Log.d(TAG, "Voice entry point ${if (enabled) "enabled" else "disabled"}")
         }
     }
 
