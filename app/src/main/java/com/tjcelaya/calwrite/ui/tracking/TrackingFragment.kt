@@ -153,6 +153,8 @@ class TrackingFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // Decided once per view: a fold or unfold resizes the activity, which re-creates it.
+        isCompactWindow = CompactWindow.isCompact(resources.configuration)
 
         setupViewModel()
         setupRecyclerViews()
@@ -263,7 +265,7 @@ class TrackingFragment : Fragment() {
      * photos are big-screen work). The list itself becomes a grid of equal-width pills, one per
      * type. The user's view-mode and card-size choices are left untouched for the main screen.
      */
-    private val isCompactWindow: Boolean get() = CompactWindow.isCompact(resources.configuration)
+    private var isCompactWindow: Boolean = false
 
     private fun applyCompactChrome() {
         binding.viewModeToggle.visibility = View.GONE
