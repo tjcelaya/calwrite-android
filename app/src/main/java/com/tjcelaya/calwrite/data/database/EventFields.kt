@@ -9,6 +9,15 @@ import java.math.BigDecimal
 data class FieldValue(val number: Double, val unit: String = "")
 
 /**
+ * What an event type declares about one of its fields: the unit the value is recorded in, and
+ * optionally a value the record-time prompt starts from. A blank unit is a bare count or score.
+ */
+data class FieldSpec(val unit: String = "", val default: Double? = null) {
+    /** The prompt's starting value, when there is one. */
+    fun defaultValue(): FieldValue? = default?.let { FieldValue(it, unit) }
+}
+
+/**
  * Key/value fields attached to an event, in the spirit of InfluxDB fields: numeric measurements
  * such as `heart_rate=72bpm` or `score=1500` that describe *this* occurrence and can later be
  * charted or aggregated. Labels ([EventLabels]) identify an occurrence; fields measure it.
@@ -92,6 +101,27 @@ object EventFields {
         val unit = trimmed.substring(match.range.last + 1).trim()
         return FieldValue(number, unit)
     }
+
+    // === Field specs (what a type declares) ===
+
+    /**
+     * Specs use the same pair syntax with the value being an optional number followed by the
+     * unit: `heart_rate=bpm` (unit only), `weight=70kg` (default and unit), `score=` (a bare
+     * number with no default). Anything that parses as a label set parses as specs.
+     */
+    fun parseSpecs(text: String?): Map<String, FieldSpec> =
+        EventLabels.parseOrEmpty(text).mapValues { (_, raw) -> parseSpec(raw) }
+
+    fun formatSpecs(specs: Map<String, FieldSpec>): String =
+        EventLabels.format(specs.mapValues { (_, spec) -> formatSpec(spec) })
+
+    fun parseSpec(text: String): FieldSpec {
+        val value = parseValue(text)
+        return if (value == null) FieldSpec(unit = text.trim()) else FieldSpec(value.unit, value.number)
+    }
+
+    fun formatSpec(spec: FieldSpec): String =
+        spec.defaultValue()?.let(::formatValue) ?: spec.unit.trim()
 
     private val NUMBER_PREFIX = Regex("""^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?""")
 }

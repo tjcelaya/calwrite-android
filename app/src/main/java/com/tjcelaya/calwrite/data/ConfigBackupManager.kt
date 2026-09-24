@@ -11,6 +11,7 @@ import androidx.room.withTransaction
 import com.tjcelaya.calwrite.data.database.AlbumConfig
 import com.tjcelaya.calwrite.data.database.Cadence
 import com.tjcelaya.calwrite.data.database.Event
+import com.tjcelaya.calwrite.data.database.EventFields
 import com.tjcelaya.calwrite.data.database.EventLabels
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.FutureEvent
@@ -136,7 +137,9 @@ class ConfigBackupManager(
                     .put("createdAt", type.createdAt)
                     .put("cadence", type.cadence.name)
                     .put("defaultLabels", EventLabels.format(type.defaultLabels))
-                    .put("fieldUnits", EventLabels.format(type.fieldUnits))
+                    .put("fieldSpecs", EventFields.formatSpecs(type.fieldSpecs))
+                    .put("calendarId", type.calendarId ?: JSONObject.NULL)
+                    .put("archived", type.archived)
             )
         }
         root.put("eventTypes", eventTypes)
@@ -241,7 +244,9 @@ class ConfigBackupManager(
                     createdAt = o.optLong("createdAt", System.currentTimeMillis()),
                     cadence = Cadence.fromName(o.optStringOrNull("cadence")),
                     defaultLabels = EventLabels.parseOrEmpty(o.optStringOrNull("defaultLabels")),
-                    fieldUnits = EventLabels.parseOrEmpty(o.optStringOrNull("fieldUnits"))
+                    fieldSpecs = EventFields.parseSpecs(o.optStringOrNull("fieldSpecs")),
+                    calendarId = if (o.isNull("calendarId")) null else o.optLong("calendarId"),
+                    archived = o.optBoolean("archived", false)
                 )
             )
         }
@@ -317,7 +322,7 @@ class ConfigBackupManager(
         var seeded = 0
         for (type in types) {
             val lastTime = try {
-                calendarRepository.getLastOccurrence(type.name)
+                calendarRepository.getLastOccurrence(type.name, type.calendarId)
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to look up last occurrence for '${type.name}'", e)
                 null

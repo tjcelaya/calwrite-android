@@ -54,47 +54,67 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Default labels: seed every new event of this type -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/defaultLabelsInputLayout"
+        <!-- Labels: key/value pairs every new event of this type starts with -->
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:hint="@string/event_type_default_labels_hint"
-            app:helperText="@string/event_type_default_labels_helper"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            android:text="@string/event_type_labels_title"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:layout_marginBottom="4dp" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/defaultLabelsEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:inputType="text|textNoSuggestions"
-                android:maxLines="3"
-                tools:text="kind=cardio" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Declared fields: the measurements recording asks for, as key=unit -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/fieldUnitsInputLayout"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/event_type_labels_helper"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:id="@+id/labelRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/addLabelButton"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
-            android:hint="@string/event_type_field_units_hint"
-            app:helperText="@string/event_type_field_units_helper"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            android:text="@string/attr_add_label"
+            app:icon="@drawable/ic_add" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/fieldUnitsEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:inputType="text|textNoSuggestions"
-                android:maxLines="3"
-                tools:text="heart_rate=bpm" />
+        <!-- Fields: measurements recording asks for, with unit and optional starting value -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/event_type_fields_title"
+            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+            android:layout_marginBottom="4dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/event_type_fields_helper"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:id="@+id/fieldRows"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/addFieldButton"
+            style="@style/Widget.Material3.Button.TextButton.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="@string/attr_add_field"
+            app:icon="@drawable/ic_add" />
 
         <!-- Color Selection -->
         <TextView
@@ -178,6 +198,31 @@
             android:text="Show as bubble notification"
             android:layout_marginBottom="24dp"
             android:visibility="gone" />
+
+        <!-- Calendar: where this type's events are written; default is the Settings choice -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/calendarInputLayout"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:hint="@string/event_type_calendar_hint">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/calendarDropdown"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Archived types leave every view except Manage events -->
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/archivedCheckbox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="@string/event_type_archived" />
 
         <!-- Action Buttons -->
         <LinearLayout

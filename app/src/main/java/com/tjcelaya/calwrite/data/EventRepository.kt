@@ -78,8 +78,18 @@ class EventRepository(
         _photoUploads.postValue(activeUploads.values.toList())
     }
 
+    // === Archived types are left out of every listing except the one Manage events uses ===
+
+    private fun <T> Flow<List<T>>.visible(isArchived: (T) -> Boolean): Flow<List<T>> =
+        map { items -> items.filterNot(isArchived) }
+
     // Event Type operations
-    fun getAllEventTypes(): LiveData<List<EventType>> = eventTypeDao.getAllEventTypes()
+    fun getAllEventTypes(): LiveData<List<EventType>> =
+        eventTypeDao.getAllEventTypes().visible { it.archived }.asLiveData()
+
+    /** Every type, archived ones included: for the Manage events screen, which can unarchive. */
+    fun getAllEventTypesIncludingArchived(): LiveData<List<EventType>> =
+        eventTypeDao.getAllEventTypes().asLiveData()
 
     fun getFavoriteEventTypes(): Flow<List<EventType>> {
         // For now, return empty list. In future, can add favorite functionality
@@ -91,13 +101,13 @@ class EventRepository(
     }
 
     suspend fun getEventTypeByName(name: String): EventType? = withContext(Dispatchers.IO) {
-        eventTypeDao.getEventTypeByName(name)
+        eventTypeDao.getEventTypeByName(name)?.takeIf { !it.archived }
     }
 
     suspend fun getAllEventTypesSync(): List<EventType> = withContext(Dispatchers.IO) {
         // Get all event types synchronously by converting LiveData to a one-time fetch
         // This is a simple solution - in a real app you might want to use Flow instead
-        eventTypeDao.getAllEventTypesSync()
+        eventTypeDao.getAllEventTypesSync().filterNot { it.archived }
     }
 
     suspend fun insertEventType(eventType: EventType): Long = withContext(Dispatchers.IO) {
@@ -130,10 +140,11 @@ class EventRepository(
         calendar.add(Calendar.DAY_OF_MONTH, 1)
         val endOfDay = calendar.timeInMillis
 
-        return eventDao.getTodaysEventsWithType(startOfDay, endOfDay)
+        return eventDao.getTodaysEventsWithType(startOfDay, endOfDay).visible { it.eventType.archived }
     }
 
-    fun getOngoingEventsWithType(): Flow<List<EventWithType>> = eventDao.getOngoingEventsWithType()
+    fun getOngoingEventsWithType(): Flow<List<EventWithType>> =
+        eventDao.getOngoingEventsWithType().visible { it.eventType.archived }
 
     // Event creation and management
     /** A new event's labels: its type's defaults, overlaid with any given for this occurrence. */
@@ -408,7 +419,7 @@ class EventRepository(
 
         // Use a MediatorLiveData that observes the ongoing events Flow
         return MediatorLiveData<List<OngoingEvent>>().apply {
-            val source = eventDao.getOngoingEventsWithType().asLiveData()
+            val source = getOngoingEventsWithType().asLiveData()
             addSource(source) { eventsWithType ->
                 try {
                     val ongoingEventsList = eventsWithType
@@ -527,16 +538,17 @@ class EventRepository(
 
     /** Recent finished events with their type, newest first, for the ledger. */
     fun getRecentCompletedEventsWithType(limit: Int = 200): Flow<List<EventWithType>> =
-        eventDao.getRecentCompletedEventsWithType(limit)
+        eventDao.getRecentCompletedEventsWithType(limit).visible { it.eventType.archived }
 
     /** Any event by id, ongoing or finished. */
     suspend fun getEventByIdOrNull(eventId: Long): Event? = withContext(Dispatchers.IO) {
         eventDao.getEventById(eventId)
     }
 
-    /** Currently-running events, newest first. */
+    /** Currently-running events, newest first, leaving out those of archived types. */
     suspend fun getOngoingEventsSync(): List<Event> = withContext(Dispatchers.IO) {
-        eventDao.getOngoingEvents()
+        val archived = eventTypeDao.getAllEventTypesSync().filter { it.archived }.map { it.id }.toSet()
+        eventDao.getOngoingEvents().filterNot { it.eventTypeId in archived }
     }
 
     /** The running event for a type, or null when that type isn't currently being tracked. */

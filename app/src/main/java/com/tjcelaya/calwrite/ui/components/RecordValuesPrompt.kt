@@ -30,7 +30,8 @@ class RecordValuesPrompt(private val context: Context, private val eventType: Ev
         val dp = context.resources.displayMetrics.density
         setPadding((24 * dp).toInt(), (8 * dp).toInt(), (24 * dp).toInt(), 0)
 
-        for ((key, unit) in eventType.fieldUnits) {
+        for ((key, spec) in eventType.fieldSpecs) {
+            val unit = spec.unit
             val layout = TextInputLayout(context).apply {
                 hint = if (unit.isBlank()) key else "$key ($unit)"
                 suffixText = unit.takeIf { it.isNotBlank() }
@@ -40,6 +41,7 @@ class RecordValuesPrompt(private val context: Context, private val eventType: Ev
                     InputType.TYPE_NUMBER_FLAG_DECIMAL or
                     InputType.TYPE_NUMBER_FLAG_SIGNED
                 maxLines = 1
+                spec.default?.let { setText(EventFields.formatNumber(it)) }
             }
             layout.addView(input)
             addView(layout, LinearLayout.LayoutParams(
@@ -92,7 +94,7 @@ class RecordValuesPrompt(private val context: Context, private val eventType: Ev
                 valid = false
             } else {
                 layout.error = null
-                fields[key] = FieldValue(number, eventType.fieldUnits[key].orEmpty())
+                fields[key] = FieldValue(number, eventType.fieldSpecs[key]?.unit.orEmpty())
             }
         }
         val labels = when {
@@ -104,7 +106,7 @@ class RecordValuesPrompt(private val context: Context, private val eventType: Ev
 
     companion object {
         /** Whether recording this type needs the prompt at all. */
-        fun isNeeded(eventType: EventType): Boolean = eventType.fieldUnits.isNotEmpty()
+        fun isNeeded(eventType: EventType): Boolean = eventType.fieldSpecs.isNotEmpty()
 
         /** One-line summary of entered values for a confirmation message. */
         fun summary(fields: Map<String, FieldValue>): String =

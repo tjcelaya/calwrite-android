@@ -28,20 +28,23 @@ data class Event(
     val fields: Map<String, FieldValue> = emptyMap(),      // events.fields
 )
 
-/** A kind of event. Its defaults seed every new Event; its field units say what to ask for. */
+/** What a type declares about one field: its unit, and optionally a value the prompt starts from. */
+data class FieldSpec(val unit: String = "", val default: Double? = null)
+
+/** A kind of event. Its defaults seed every new Event; its field specs say what to ask for. */
 data class EventType(
     val id: Long,
     val name: String,
     // ...
-    val defaultLabels: Map<String, String> = emptyMap(),   // event_types.defaultLabels
-    val fieldUnits: Map<String, String> = emptyMap(),      // event_types.fieldUnits: key -> unit
+    val defaultLabels: Map<String, String> = emptyMap(),   // event_types.defaultLabels: key -> default value
+    val fieldSpecs: Map<String, FieldSpec> = emptyMap(),   // event_types.fieldSpecs: key -> unit + default
 )
 
 /** Recording copies the defaults in; later edits to the type don't rewrite past events. */
 fun labelsForNewEvent(type: EventType, given: Map<String, String>): Map<String, String> =
     type.defaultLabels + given // given wins on a shared key
 
-/** Fields are never defaulted: a type declares which to ask for, the occurrence supplies values. */
+/** A field's default only pre-fills the prompt; the occurrence still supplies the value. */
 fun fieldsForNewEvent(given: Map<String, FieldValue>): Map<String, FieldValue> = given
 
 /** Text forms: InfluxDB line-protocol tag-set syntax, fields with the unit glued to the number. */
@@ -54,6 +57,8 @@ object EventFields {
     fun format(fields: Map<String, FieldValue>): String
     fun parseValue(text: String): FieldValue?                // "72bpm" | "72 bpm" -> FieldValue(72.0, "bpm")
     fun formatValue(value: FieldValue): String               // FieldValue(5.2, "km") -> "5.2km"
+    fun parseSpecs(text: String?): Map<String, FieldSpec>    // "heart_rate=bpm,score=,weight=70kg"
+    fun formatSpecs(specs: Map<String, FieldSpec>): String
 }
 ```
 
@@ -81,7 +86,27 @@ class RecordValuesPrompt(context: Context, type: EventType) {
   fatal. Assistant's built-in intents carry neither.
 - **Afterwards**: both are editable per event in the ledger's **Adjust** sheet, as text.
 
-Blank inputs in the prompt are omitted rather than stored as zero.
+Blank inputs in the prompt are omitted rather than stored as zero. A field whose spec carries a
+default has the prompt pre-filled with it.
+
+## Editing a type
+
+The type screen has a **Labels** section above a **Fields** section, each a list of rows with an
+Add button. A label row is name and default value; a field row is name, default value and a unit
+dropdown. The dropdown offers *None*, a built-in handful (`Units.BUILT_IN`), every unit already
+used on any type, units the user added before, and *Add a new unit…* last, which opens a dialog and
+remembers the answer in `StoragePreferences` so it is offered from then on.
+
+```kotlin
+class AttributeRowsEditor(container: LinearLayout, kind: Kind, unitSource: UnitSource?) {
+    enum class Kind { LABELS, FIELDS }
+    fun showLabels(labels: Map<String, String>);  fun readLabels(): Map<String, String>?   // null: fix the marked row
+    fun showFields(specs: Map<String, FieldSpec>); fun readFields(): Map<String, FieldSpec>?
+    fun addEmptyRow()
+}
+```
+
+The concise text syntax stays for the ledger's Adjust sheet and for deep links.
 
 ## One syntax everywhere
 
@@ -96,7 +121,8 @@ written sorted (line protocol's canonical order). A field value is a number imme
 by its unit; a space between them is tolerated on input. Whole numbers are written without a
 decimal point.
 
-A type's declared fields use the label syntax with the unit as the value: `heart_rate=bpm,score=`.
+A type's declared fields use the label syntax with the value being an optional default followed
+by the unit: `heart_rate=bpm,score=,weight=70kg`.
 
 The same text is used for the Room columns (via `TypeConverter`s), the edit fields, and the
 calendar event description, where each kind gets its own line:
@@ -114,6 +140,7 @@ so an export script can find each with one prefix match and one parse.
 ## Storage
 
 Schema 11 (`MIGRATION_10_11`) adds `events.labels` and `event_types.defaultLabels`; schema 12
-(`MIGRATION_11_12`) adds `events.fields` and `event_types.fieldUnits`. All four are
+(`MIGRATION_11_12`) adds `events.fields` and `event_types.fieldUnits`; schema 13
+(`MIGRATION_12_13`) renames that last column to `fieldSpecs`. All four are
 `TEXT NOT NULL DEFAULT ''`; empty text is an empty set, so existing rows need no backfill. Default
-labels and field units are included in the config backup as `defaultLabels` and `fieldUnits`.
+labels and field specs are included in the config backup as `defaultLabels` and `fieldSpecs`.

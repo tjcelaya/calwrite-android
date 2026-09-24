@@ -24,4 +24,10 @@ class Converters {
 
     @TypeConverter
     fun toFields(value: String?): Map<String, FieldValue> = EventFields.parseOrEmpty(value)
+
+    @TypeConverter
+    fun fromFieldSpecs(specs: Map<String, FieldSpec>): String = EventFields.formatSpecs(specs)
+
+    @TypeConverter
+    fun toFieldSpecs(value: String?): Map<String, FieldSpec> = EventFields.parseSpecs(value)
 }

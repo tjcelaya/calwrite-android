@@ -87,4 +87,19 @@ class EventFieldsTest {
     }
 
     private fun parseValue(text: String): FieldValue? = EventFields.parseValue(text)
+
+    @Test
+    fun specsAreUnitWithOptionalDefault() {
+        val specs = mapOf(
+            "heart_rate" to FieldSpec("bpm"),
+            "weight" to FieldSpec("kg", 70.0),
+            "score" to FieldSpec()
+        )
+        assertEquals("heart_rate=bpm,score=,weight=70kg", EventFields.formatSpecs(specs))
+        assertEquals(specs, EventFields.parseSpecs("heart_rate=bpm,score=,weight=70kg"))
+        assertEquals(FieldSpec("bpm"), EventFields.parseSpec(" bpm "))
+        assertEquals(FieldSpec("", 5.0), EventFields.parseSpec("5"))
+        assertEquals(FieldValue(70.0, "kg"), FieldSpec("kg", 70.0).defaultValue())
+        assertNull(FieldSpec("kg").defaultValue())
+    }
 }

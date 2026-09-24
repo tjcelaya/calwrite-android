@@ -41,8 +41,8 @@ class CalendarRepository(private val context: Context) {
      * Most recent past occurrence (DTSTART) of an event matching [title] in the selected
      * calendar, or null if none / no calendar selected. Used to seed last-occurrence on import.
      */
-    suspend fun getLastOccurrence(title: String): Long? {
-        val calendarId = getSelectedCalendarId() ?: return null
+    suspend fun getLastOccurrence(title: String, calendarOverride: Long? = null): Long? {
+        val calendarId = calendarOverride ?: getSelectedCalendarId() ?: return null
         return CalendarUtils.getLastOccurrence(context, calendarId, title)
     }
 
@@ -103,7 +103,8 @@ class CalendarRepository(private val context: Context) {
         labels: Map<String, String> = emptyMap(),
         fields: Map<String, FieldValue> = emptyMap()
     ): Long? = withContext(Dispatchers.IO) {
-        val calendarId = getSelectedCalendarId() ?: return@withContext null
+        // A type may route its events to a calendar of its own; otherwise the one from Settings.
+        val calendarId = eventType.calendarId ?: getSelectedCalendarId() ?: return@withContext null
 
         if (!hasCalendarPermissions()) {
             return@withContext null

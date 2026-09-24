@@ -36,7 +36,11 @@ class EventTypeAdapter(
         private val deleteButton: MaterialButton = itemView.findViewById(R.id.deleteButton)
 
         fun bind(eventType: EventType) {
-            eventTypeName.text = eventType.name
+            eventTypeName.text = if (eventType.archived) {
+                itemView.context.getString(R.string.event_type_archived_name, eventType.name)
+            } else {
+                eventType.name
+            }
 
             // Handle description visibility
             if (eventType.description.isNullOrBlank()) {

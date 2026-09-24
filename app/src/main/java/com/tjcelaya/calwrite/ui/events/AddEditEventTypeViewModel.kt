@@ -22,6 +22,9 @@ class AddEditEventTypeViewModel(
     private val _loadedEventType = MutableLiveData<EventType?>()
     val loadedEventType: LiveData<EventType?> = _loadedEventType
 
+    /** Every type, so the unit picker can offer units already in use elsewhere. */
+    val allEventTypes: LiveData<List<EventType>> = eventRepository.getAllEventTypes()
+
     fun saveEventType(eventType: EventType) {
         viewModelScope.launch {
             try {

@@ -16,13 +16,17 @@ import androidx.navigation.fragment.navArgs
 import com.tjcelaya.calwrite.R
 import com.tjcelaya.calwrite.CalWriteApplication
 import com.tjcelaya.calwrite.data.BubbleMode
+import com.tjcelaya.calwrite.data.CalendarRepository
+import com.tjcelaya.calwrite.utils.CalendarInfo
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.tjcelaya.calwrite.data.EventRepository
 import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.Cadence
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.CalWriteDatabase
 import com.tjcelaya.calwrite.databinding.FragmentAddEditEventTypeBinding
-import com.tjcelaya.calwrite.ui.components.LabelsField
+import com.tjcelaya.calwrite.data.database.Units
 import com.tjcelaya.calwrite.utils.GoogleCalendarColors
 
 class AddEditEventTypeFragment : Fragment() {
@@ -33,6 +37,11 @@ class AddEditEventTypeFragment : Fragment() {
 
     private lateinit var viewModel: AddEditEventTypeViewModel
     private lateinit var storagePreferences: StoragePreferences
+    private lateinit var calendarRepository: CalendarRepository
+    private var calendars: List<CalendarInfo> = emptyList()
+    private var selectedCalendarId: Long? = null // null = the calendar chosen in Settings
+    private lateinit var labelsEditor: AttributeRowsEditor
+    private lateinit var fieldsEditor: AttributeRowsEditor
     private var editingEventType: EventType? = null
     private var selectedColorId: Int? = null // Google Calendar color ID (1-11)
 
@@ -50,8 +59,11 @@ class AddEditEventTypeFragment : Fragment() {
 
         val app = requireActivity().application as CalWriteApplication
         storagePreferences = app.storagePreferences
+        calendarRepository = app.calendarRepository
 
         setupViewModel()
+        setupCalendarDropdown()
+        setupAttributeEditors()
         setupBubbleToggle()
         setupCadenceToggle()
         loadEventTypeFromArguments()
@@ -65,6 +77,49 @@ class AddEditEventTypeFragment : Fragment() {
         val eventRepository = EventRepository(database)
         val factory = AddEditEventTypeViewModelFactory(eventRepository)
         viewModel = ViewModelProvider(this, factory)[AddEditEventTypeViewModel::class.java]
+    }
+
+    private fun setupAttributeEditors() {
+        labelsEditor = AttributeRowsEditor(binding.labelRows, AttributeRowsEditor.Kind.LABELS)
+        fieldsEditor = AttributeRowsEditor(
+            binding.fieldRows,
+            AttributeRowsEditor.Kind.FIELDS,
+            object : AttributeRowsEditor.UnitSource {
+                // Units already in use on any type are offered too, so a unit typed once is
+                // available everywhere without having to be "added" a second time.
+                override fun knownUnits(): List<String> = Units.known(
+                    storagePreferences.getCustomUnits(),
+                    viewModel.allEventTypes.value.orEmpty().flatMap { type -> type.fieldSpecs.values.map { it.unit } }
+                )
+
+                override fun addUnit(unit: String) = storagePreferences.addCustomUnit(unit)
+            }
+        )
+        binding.addLabelButton.setOnClickListener { labelsEditor.addEmptyRow() }
+        binding.addFieldButton.setOnClickListener { fieldsEditor.addEmptyRow() }
+    }
+
+    /** "Default (name)" first, then every calendar the device knows; the pick is stored by id. */
+    private fun setupCalendarDropdown() {
+        renderCalendarChoices()
+        viewLifecycleOwner.lifecycleScope.launch {
+            calendars = runCatching { calendarRepository.getAvailableCalendars() }.getOrDefault(emptyList())
+            renderCalendarChoices()
+        }
+        binding.calendarDropdown.setOnItemClickListener { _, _, position, _ ->
+            selectedCalendarId = if (position == 0) null else calendars.getOrNull(position - 1)?.id
+        }
+    }
+
+    private fun renderCalendarChoices() {
+        val defaultLabel = getString(
+            R.string.event_type_calendar_default,
+            calendarRepository.getSelectedCalendarName() ?: getString(R.string.event_type_calendar_none)
+        )
+        val choices = listOf(defaultLabel) + calendars.map { "${it.displayName} (${it.accountName})" }
+        binding.calendarDropdown.setSimpleItems(choices.toTypedArray())
+        val current = calendars.indexOfFirst { it.id == selectedCalendarId }
+        binding.calendarDropdown.setText(if (current >= 0) choices[current + 1] else defaultLabel, false)
     }
 
     private fun setupBubbleToggle() {
@@ -241,8 +296,11 @@ class AddEditEventTypeFragment : Fragment() {
         editingEventType?.let { eventType ->
             binding.nameEditText.setText(eventType.name)
             binding.descriptionEditText.setText(eventType.description)
-            LabelsField.show(binding.defaultLabelsEditText, eventType.defaultLabels)
-            LabelsField.show(binding.fieldUnitsEditText, eventType.fieldUnits)
+            labelsEditor.showLabels(eventType.defaultLabels)
+            fieldsEditor.showFields(eventType.fieldSpecs)
+            selectedCalendarId = eventType.calendarId
+            renderCalendarChoices()
+            binding.archivedCheckbox.isChecked = eventType.archived
             binding.saveButton.text = "Update"
 
             // Restore color selection
@@ -269,16 +327,8 @@ class AddEditEventTypeFragment : Fragment() {
 
         binding.nameInputLayout.error = null
 
-        val defaultLabels = LabelsField.read(
-            binding.defaultLabelsInputLayout,
-            binding.defaultLabelsEditText
-        ) ?: return
-
-        // Declared fields share the labels syntax: key=unit, with an empty unit for a bare number.
-        val fieldUnits = LabelsField.read(
-            binding.fieldUnitsInputLayout,
-            binding.fieldUnitsEditText
-        ) ?: return
+        val defaultLabels = labelsEditor.readLabels() ?: return
+        val fieldSpecs = fieldsEditor.readFields() ?: return
 
         val shouldBubble = binding.bubbleSwitch.isChecked
         val cadence = selectedCadence()
@@ -292,7 +342,9 @@ class AddEditEventTypeFragment : Fragment() {
                 shouldBubble = shouldBubble,
                 cadence = cadence,
                 defaultLabels = defaultLabels,
-                fieldUnits = fieldUnits
+                fieldSpecs = fieldSpecs,
+                calendarId = selectedCalendarId,
+                archived = binding.archivedCheckbox.isChecked
             )
         } else {
             // Updating existing event type
@@ -303,7 +355,9 @@ class AddEditEventTypeFragment : Fragment() {
                 shouldBubble = shouldBubble,
                 cadence = cadence,
                 defaultLabels = defaultLabels,
-                fieldUnits = fieldUnits
+                fieldSpecs = fieldSpecs,
+                calendarId = selectedCalendarId,
+                archived = binding.archivedCheckbox.isChecked
             )
         }
 

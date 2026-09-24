@@ -1,13 +1,13 @@
 package com.tjcelaya.calwrite.data.database
 
-import androidx.lifecycle.LiveData
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventTypeDao {
 
     @Query("SELECT * FROM event_types ORDER BY sortOrder ASC, name ASC")
-    fun getAllEventTypes(): LiveData<List<EventType>>
+    fun getAllEventTypes(): Flow<List<EventType>>
 
     @Query("SELECT * FROM event_types ORDER BY sortOrder ASC, name ASC")
     suspend fun getAllEventTypesSync(): List<EventType>
