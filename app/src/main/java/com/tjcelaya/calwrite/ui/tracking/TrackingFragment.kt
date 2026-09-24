@@ -50,6 +50,12 @@ import java.util.Locale
 
 class TrackingFragment : Fragment() {
 
+    private companion object {
+        /** Bottom margins of the FAB menu's slots, lowest first; matches fragment_tracking.xml. */
+        const val FAB_MENU_FIRST_SLOT_DP = 100
+        const val FAB_MENU_SLOT_DP = 72
+    }
+
     private var _binding: FragmentTrackingBinding? = null
     private val binding get() = _binding!!
 
@@ -639,13 +645,22 @@ class TrackingFragment : Fragment() {
         )
         
         // Show and animate menu items (from bottom to top). Photo actions only exist while
-        // the photos feature is on; the other two keep their slots so the menu doesn't jump.
-        if (storagePreferences.isFeatureEnabled(Feature.PHOTOS)) {
-            animateFabMenuItem(binding.fabImage, 0)
-            animateFabMenuItem(binding.fabCamera, 50)
+        // the photos feature is on; whatever is left is packed into the lowest slots.
+        val items = buildList {
+            if (storagePreferences.isFeatureEnabled(Feature.PHOTOS)) {
+                add(binding.fabImage)
+                add(binding.fabCamera)
+            }
+            add(binding.fabScheduleEvent)
+            add(binding.fabNewEvent)
         }
-        animateFabMenuItem(binding.fabScheduleEvent, 100)
-        animateFabMenuItem(binding.fabNewEvent, 150)
+        items.forEachIndexed { slot, item ->
+            (item.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+                lp.bottomMargin = dpToPx(FAB_MENU_FIRST_SLOT_DP + slot * FAB_MENU_SLOT_DP)
+                item.layoutParams = lp
+            }
+            animateFabMenuItem(item, slot * 50L)
+        }
     }
     
     private fun closeFabMenu() {
