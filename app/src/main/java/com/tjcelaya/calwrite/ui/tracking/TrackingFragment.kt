@@ -32,10 +32,12 @@ import com.tjcelaya.calwrite.R
 import com.tjcelaya.calwrite.CalWriteApplication
 import com.tjcelaya.calwrite.data.CardColorStyle
 import com.tjcelaya.calwrite.data.EventViewMode
+import com.tjcelaya.calwrite.data.Feature
 import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.data.database.OngoingEvent
 import com.tjcelaya.calwrite.databinding.FragmentTrackingBinding
+import com.tjcelaya.calwrite.ui.components.CompactWindow
 import com.tjcelaya.calwrite.ui.components.RecordValuesPrompt
 import com.tjcelaya.calwrite.ui.dialogs.NotificationPermissionDialog
 import com.tjcelaya.calwrite.ui.dialogs.SaveEventDialog
@@ -47,6 +49,12 @@ import java.util.Date
 import java.util.Locale
 
 class TrackingFragment : Fragment() {
+
+    private companion object {
+        /** Bottom margins of the FAB menu's slots, lowest first; matches fragment_tracking.xml. */
+        const val FAB_MENU_FIRST_SLOT_DP = 100
+        const val FAB_MENU_SLOT_DP = 72
+    }
 
     private var _binding: FragmentTrackingBinding? = null
     private val binding get() = _binding!!
@@ -245,13 +253,35 @@ class TrackingFragment : Fragment() {
         recomputeSpanCount()
     }
 
+    /**
+     * On a cover screen the job is "tap to record", so the chrome around the list goes: the
+     * view toggle, the card-size slider, quick add and the FAB menu (new types, scheduling and
+     * photos are big-screen work). The list itself becomes one compact row per type. The
+     * user's view-mode and card-size choices are left untouched for the main screen.
+     */
+    private val isCompactWindow: Boolean get() = CompactWindow.isCompact(resources.configuration)
+
+    private fun applyCompactChrome() {
+        binding.viewModeToggle.visibility = View.GONE
+        binding.cardSizeRow.visibility = View.GONE
+        binding.quickAddCard.visibility = View.GONE
+        binding.fab.visibility = View.GONE
+        eventTypesAdapter.setCompact(true)
+    }
+
     private fun applyViewMode() {
-        val mode = storagePreferences.getEventViewMode()
+        val config = resources.configuration
+        Log.d(
+            "TrackingFragment",
+            "Window ${config.screenWidthDp}x${config.screenHeightDp}dp, compact=${isCompactWindow}"
+        )
+        val mode = if (isCompactWindow) EventViewMode.LIST else storagePreferences.getEventViewMode()
         currentViewMode = mode
         eventTypesAdapter.setViewMode(mode)
         eventTypesAdapter.setCardColorStyle(storagePreferences.getCardColorStyle())
         binding.cardSizeRow.visibility = if (mode == EventViewMode.CARD) View.VISIBLE else View.GONE
         recomputeSpanCount()
+        if (isCompactWindow) applyCompactChrome()
     }
 
     private fun recomputeSpanCount() {
@@ -614,11 +644,23 @@ class TrackingFragment : Fragment() {
             android.graphics.Color.parseColor("#1976D2")
         )
         
-        // Show and animate menu items (from bottom to top)
-        animateFabMenuItem(binding.fabImage, 0)
-        animateFabMenuItem(binding.fabCamera, 50)
-        animateFabMenuItem(binding.fabScheduleEvent, 100)
-        animateFabMenuItem(binding.fabNewEvent, 150)
+        // Show and animate menu items (from bottom to top). Photo actions only exist while
+        // the photos feature is on; whatever is left is packed into the lowest slots.
+        val items = buildList {
+            if (storagePreferences.isFeatureEnabled(Feature.PHOTOS)) {
+                add(binding.fabImage)
+                add(binding.fabCamera)
+            }
+            add(binding.fabScheduleEvent)
+            add(binding.fabNewEvent)
+        }
+        items.forEachIndexed { slot, item ->
+            (item.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp ->
+                lp.bottomMargin = dpToPx(FAB_MENU_FIRST_SLOT_DP + slot * FAB_MENU_SLOT_DP)
+                item.layoutParams = lp
+            }
+            animateFabMenuItem(item, slot * 50L)
+        }
     }
     
     private fun closeFabMenu() {
@@ -672,6 +714,7 @@ class TrackingFragment : Fragment() {
     }
 
     private fun checkForSharedPhoto() {
+        if (!storagePreferences.isFeatureEnabled(Feature.PHOTOS)) return
         val activity = requireActivity()
         val sharedPhotoPath = activity.intent?.getStringExtra(MainActivity.EXTRA_SHARED_PHOTO_PATH)
 

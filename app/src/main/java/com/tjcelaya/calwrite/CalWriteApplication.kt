@@ -21,7 +21,8 @@ import kotlinx.coroutines.launch
 class CalWriteApplication : Application() {
 
     // Application-level coroutine scope
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    /** Outlives any screen; for work a screen kicks off that must finish, like republishing shortcuts. */
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     // Repositories
     lateinit var database: CalWriteDatabase
@@ -94,7 +95,7 @@ class CalWriteApplication : Application() {
         notificationService = NotificationService(this, storagePreferences)
         eventRepository = EventRepository(database, driveRepository, photosRepository, storagePreferences, notificationService)
         configBackupManager = ConfigBackupManager(database, storagePreferences, calendarRepository, driveRepository)
-        voiceShortcutPublisher = VoiceShortcutPublisher(this, eventRepository)
+        voiceShortcutPublisher = VoiceShortcutPublisher(this, eventRepository, storagePreferences)
 
         Log.d(TAG, "Repositories initialized")
     }

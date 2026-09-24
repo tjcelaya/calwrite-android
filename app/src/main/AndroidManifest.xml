@@ -31,6 +31,12 @@
         <property
             android:name="android.permission.ALLOW_BUBBLES"
             android:value="true" />
+
+        <!-- Run at full size on a folding phone's cover screen instead of letterboxed; the
+             tracking screen has a compact presentation for it (see CompactWindow). -->
+        <property
+            android:name="android.window.PROPERTY_COMPAT_ALLOW_SMALL_COVER_SCREEN"
+            android:value="true" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,12 +1,16 @@
 package com.tjcelaya.calwrite.ui.voice
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.tjcelaya.calwrite.R
 import com.tjcelaya.calwrite.data.EventRepository
+import com.tjcelaya.calwrite.data.Feature
+import com.tjcelaya.calwrite.data.StoragePreferences
 import com.tjcelaya.calwrite.data.database.EventType
 import com.tjcelaya.calwrite.voice.VoiceActionType
 import com.tjcelaya.calwrite.voice.VoiceShortcutPlan
@@ -21,18 +25,22 @@ import com.tjcelaya.calwrite.voice.VoiceShortcutPlan
  */
 class VoiceShortcutPublisher(
     private val context: Context,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
+    private val storagePreferences: StoragePreferences
 ) {
 
     private companion object {
         const val TAG = "VoiceShortcutPublisher"
 
         /**
-         * Slots left for shortcuts this class does not own: the static "what am I tracking"
-         * entry in shortcuts.xml and the `event_ongoing_…` bubble shortcuts NotificationService
-         * pushes while events are running. Without this the launcher would evict those.
+         * Slots left for shortcuts this class does not own: the `event_ongoing_…` bubble
+         * shortcuts NotificationService pushes while events are running. Without this the
+         * launcher would evict those.
          */
-        const val RESERVED_SLOTS = 5
+        const val RESERVED_SLOTS = 4
+
+        /** Slots this class uses beyond the per-type plan: the status entry. */
+        const val OWN_SLOTS = 1
 
         const val CAPABILITY_START = "actions.intent.START_EXERCISE"
         const val CAPABILITY_STOP = "actions.intent.STOP_EXERCISE"
@@ -40,18 +48,32 @@ class VoiceShortcutPublisher(
         const val PARAMETER_NAME = "exercise.name"
     }
 
-    /** Safe to call repeatedly; run it again whenever event types change. */
+    /**
+     * Safe to call repeatedly; run it again whenever event types change or the voice feature
+     * is toggled. With the feature off this removes every voice shortcut and disables
+     * [VoiceActionActivity], so neither the launcher nor Assistant can reach voice control.
+     */
     suspend fun publish() {
         try {
+            val enabled = storagePreferences.isFeatureEnabled(Feature.VOICE)
+            setEntryPointEnabled(enabled)
+            if (!enabled) {
+                removeStale(emptySet())
+                return
+            }
+
+            val published = mutableSetOf<String>()
+            val status = buildStatus()
+            if (ShortcutManagerCompat.pushDynamicShortcut(context, status)) published += status.id
+
             val types = eventRepository.getAllEventTypesSync()
             val lastUsed = types.associate { it.id to eventRepository.getLastCompletedEventTime(it.id) }
             val ranked = VoiceShortcutPlan.rank(types, lastUsed)
 
             val budget = (ShortcutManagerCompat.getMaxShortcutCountPerActivity(context) -
-                RESERVED_SLOTS).coerceAtLeast(0)
+                RESERVED_SLOTS - OWN_SLOTS).coerceAtLeast(0)
             val plan = VoiceShortcutPlan.plan(ranked, budget)
 
-            val published = mutableSetOf<String>()
             plan.entries.forEach { entry ->
                 val shortcut = build(entry.eventType, entry.action)
                 if (ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)) {
@@ -76,6 +98,28 @@ class VoiceShortcutPublisher(
             Log.e(TAG, "Failed to publish voice shortcuts", e)
         }
     }
+
+    private fun setEntryPointEnabled(enabled: Boolean) {
+        val component = ComponentName(context, VoiceActionActivity::class.java)
+        val state = if (enabled) {
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+        } else {
+            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+        }
+        if (context.packageManager.getComponentEnabledSetting(component) != state) {
+            context.packageManager.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+            Log.d(TAG, "Voice entry point ${if (enabled) "enabled" else "disabled"}")
+        }
+    }
+
+    private fun buildStatus(): ShortcutInfoCompat =
+        ShortcutInfoCompat.Builder(context, VoiceShortcutPlan.STATUS_ID)
+            .setShortLabel(context.getString(R.string.voice_shortcut_status_short))
+            .setLongLabel(context.getString(R.string.voice_shortcut_status_long))
+            .setIcon(IconCompat.createWithResource(context, R.drawable.ic_schedule))
+            .setIntent(VoiceActionActivity.createIntent(context, VoiceActionType.STATUS, null))
+            .setLongLived(true)
+            .build()
 
     private fun build(eventType: EventType, action: VoiceActionType): ShortcutInfoCompat {
         val label = context.getString(labelFor(action), eventType.name)

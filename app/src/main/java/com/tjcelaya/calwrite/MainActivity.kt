@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.color.DynamicColors
@@ -20,6 +21,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
 import com.tjcelaya.calwrite.CalWriteApplication
+import com.tjcelaya.calwrite.data.Feature
 import com.tjcelaya.calwrite.databinding.ActivityMainBinding
 import com.tjcelaya.calwrite.ui.main.MainFragment
 import kotlinx.coroutines.Dispatchers
@@ -69,6 +71,11 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivity", "Intent action: $action, type: $type")
 
         if (Intent.ACTION_SEND == action && type != null && type.startsWith("image/")) {
+            val app = application as CalWriteApplication
+            if (!app.storagePreferences.isFeatureEnabled(Feature.PHOTOS)) {
+                Toast.makeText(this, R.string.photos_feature_off, Toast.LENGTH_LONG).show()
+                return
+            }
             val imageUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {

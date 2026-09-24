@@ -18,6 +18,8 @@ after the fact — historical records of shipped work, not plans. See also [READ
 | Rename ScribCal to CalWrite; drop the daily/weekly counter responsibility (now owned by CalScope) | [`docs/plans/rename-calwrite.md`](docs/plans/rename-calwrite.md) | In progress |
 | Labels (InfluxDB tags) and numeric fields with units on events, with per-type defaults and record-time prompts | [`docs/plans/event-labels.md`](docs/plans/event-labels.md) | Implemented |
 | Per-type calendar override, and archived types that leave the recording views | [`docs/plans/calendar-override-and-archive.md`](docs/plans/calendar-override-and-archive.md) | Implemented |
+| Photos, voice and bubbles behind opt-in feature flags in Settings | [`docs/plans/feature-flags.md`](docs/plans/feature-flags.md) | Implemented |
+| Compact tracking screen for a folding phone's cover display | [`docs/plans/cover-screen.md`](docs/plans/cover-screen.md) | Implemented |
 
 ### Voice control (Assistant + Gemini)
 
