@@ -43,6 +43,12 @@ out of the tracking screen, the ledger, voice resolution and the published voice
 stays in the Manage events list, marked *(archived)*, so it can be edited and unarchived. The
 backup carries `archived`, so a restore keeps the marks.
 
+An archived type still owns its name: creating another type with that name is refused with a
+pointer to Manage events, and quick-add or calendar import reuse the archived type rather than
+replacing it (inserts abort on a name collision, since a replace would cascade-delete the type's
+events). A type with a running event cannot be archived, because the tracking screen is where
+that event gets stopped.
+
 ## Storage
 
 Schema 14 (`MIGRATION_13_14`) adds `event_types.calendarId INTEGER` (null) and

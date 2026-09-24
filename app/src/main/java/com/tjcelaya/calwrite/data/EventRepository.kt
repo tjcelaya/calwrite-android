@@ -104,6 +104,14 @@ class EventRepository(
         eventTypeDao.getEventTypeByName(name)?.takeIf { !it.archived }
     }
 
+    /**
+     * Name lookup that sees archived types too. Anything that creates a type from a name must
+     * use this, since the unique name index means an archived type still owns its name.
+     */
+    suspend fun findEventTypeByNameIncludingArchived(name: String): EventType? = withContext(Dispatchers.IO) {
+        eventTypeDao.getEventTypeByName(name)
+    }
+
     suspend fun getAllEventTypesSync(): List<EventType> = withContext(Dispatchers.IO) {
         // Get all event types synchronously by converting LiveData to a one-time fetch
         // This is a simple solution - in a real app you might want to use Flow instead

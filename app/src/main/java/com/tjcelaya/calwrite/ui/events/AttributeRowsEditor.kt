@@ -77,7 +77,7 @@ class AttributeRowsEditor(
         var valid = true
         val specs = keys.mapValues { (key, row) ->
             val text = row.valueInput.text?.toString().orEmpty().trim()
-            val default = if (text.isEmpty()) null else text.toDoubleOrNull()
+            val default = if (text.isEmpty()) null else text.replace(',', '.').toDoubleOrNull()
             if (text.isNotEmpty() && default == null) {
                 row.valueLayout.error = context.getString(R.string.fields_error_not_a_number, key)
                 valid = false

@@ -33,6 +33,7 @@ object SaveEventDialog {
         eventType: EventType,
         onSave: (fields: Map<String, FieldValue>) -> Unit,
         onDiscardWithoutSaving: () -> Unit,
+        initialFields: Map<String, FieldValue> = emptyMap(),
         onCancel: () -> Unit
     ) {
         // Calculate elapsed time for display
@@ -55,7 +56,11 @@ object SaveEventDialog {
         
         // A type that declares fields is asked for them here, at the end, when the values are
         // known. The positive button is wired after show() so a bad entry keeps the dialog open.
-        val prompt = if (RecordValuesPrompt.isNeeded(eventType)) RecordValuesPrompt(context, eventType) else null
+        val prompt = if (RecordValuesPrompt.isNeeded(eventType)) {
+            RecordValuesPrompt(context, eventType, initialFields)
+        } else {
+            null
+        }
 
         val dialog = AlertDialog.Builder(context)
             .setTitle("Save ${eventType.name}")

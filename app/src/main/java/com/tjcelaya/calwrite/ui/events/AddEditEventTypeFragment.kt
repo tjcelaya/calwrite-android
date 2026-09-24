@@ -39,6 +39,7 @@ class AddEditEventTypeFragment : Fragment() {
     private lateinit var storagePreferences: StoragePreferences
     private lateinit var calendarRepository: CalendarRepository
     private var calendars: List<CalendarInfo> = emptyList()
+    private var allTypes: List<EventType> = emptyList()
     private var selectedCalendarId: Long? = null // null = the calendar chosen in Settings
     private lateinit var labelsEditor: AttributeRowsEditor
     private lateinit var fieldsEditor: AttributeRowsEditor
@@ -89,12 +90,13 @@ class AddEditEventTypeFragment : Fragment() {
                 // available everywhere without having to be "added" a second time.
                 override fun knownUnits(): List<String> = Units.known(
                     storagePreferences.getCustomUnits(),
-                    viewModel.allEventTypes.value.orEmpty().flatMap { type -> type.fieldSpecs.values.map { it.unit } }
+                    allTypes.flatMap { type -> type.fieldSpecs.values.map { it.unit } }
                 )
 
                 override fun addUnit(unit: String) = storagePreferences.addCustomUnit(unit)
             }
         )
+        viewModel.allEventTypes.observe(viewLifecycleOwner) { allTypes = it }
         binding.addLabelButton.setOnClickListener { labelsEditor.addEmptyRow() }
         binding.addFieldButton.setOnClickListener { fieldsEditor.addEmptyRow() }
     }

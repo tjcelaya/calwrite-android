@@ -292,6 +292,11 @@ class TrackingViewModel(
     fun createEventTypeFromQuickAdd(eventName: String) {
         viewModelScope.launch {
             try {
+                val archived = eventRepository.findEventTypeByNameIncludingArchived(eventName)
+                if (archived != null) {
+                    _message.value = "'$eventName' is an archived event type; unarchive it from Manage events"
+                    return@launch
+                }
                 val newEventType = EventType(
                     name = eventName,
                     description = "Created from quick add",
@@ -347,7 +352,7 @@ class TrackingViewModel(
     suspend fun createEventTypeFromCalendarEvent(eventTitle: String): Long? {
         return try {
             // Check if an event type with this name already exists
-            val existingEventType = eventRepository.getEventTypeByName(eventTitle)
+            val existingEventType = eventRepository.findEventTypeByNameIncludingArchived(eventTitle)
             if (existingEventType != null) {
                 Log.d("TrackingViewModel", "Reusing existing event type: ${existingEventType.name}")
                 return existingEventType.id

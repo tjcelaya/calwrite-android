@@ -19,7 +19,12 @@ import com.tjcelaya.calwrite.data.database.FieldValue
  * Built in code rather than XML because the number of inputs comes from the type. Hosts embed
  * [view] in whatever dialog fits the flow and call [read] on confirm.
  */
-class RecordValuesPrompt(private val context: Context, private val eventType: EventType) {
+class RecordValuesPrompt(
+    private val context: Context,
+    private val eventType: EventType,
+    /** Values already known (say, from a deep link); they beat the spec's default as prefill. */
+    initial: Map<String, FieldValue> = emptyMap()
+) {
 
     private val inputs = LinkedHashMap<String, Pair<TextInputLayout, TextInputEditText>>()
     private var labelsLayout: TextInputLayout? = null
@@ -41,7 +46,7 @@ class RecordValuesPrompt(private val context: Context, private val eventType: Ev
                     InputType.TYPE_NUMBER_FLAG_DECIMAL or
                     InputType.TYPE_NUMBER_FLAG_SIGNED
                 maxLines = 1
-                spec.default?.let { setText(EventFields.formatNumber(it)) }
+                (initial[key]?.number ?: spec.default)?.let { setText(EventFields.formatNumber(it)) }
             }
             layout.addView(input)
             addView(layout, LinearLayout.LayoutParams(
@@ -88,7 +93,7 @@ class RecordValuesPrompt(private val context: Context, private val eventType: Ev
                 layout.error = null
                 continue
             }
-            val number = text.toDoubleOrNull()
+            val number = text.replace(',', '.').toDoubleOrNull()
             if (number == null) {
                 layout.error = context.getString(R.string.fields_error_not_a_number, key)
                 valid = false
