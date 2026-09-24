@@ -239,8 +239,8 @@ class EventTypesTrackingAdapter(
             val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
             startedAtText.text = "Started at ${timeFormat.format(startTime)}"
 
-            // Hide normal buttons, show stop button
-            instantEventButton.visibility = View.GONE
+            // The timed slot shows stop; the instant slot stays reserved so columns line up.
+            instantEventButton.visibility = View.INVISIBLE
             startEventButton.visibility = View.GONE
             stopEventButton.visibility = View.VISIBLE
 
@@ -254,9 +254,10 @@ class EventTypesTrackingAdapter(
             // Hide ongoing status
             ongoingStatusLayout.visibility = View.GONE
 
-            // Show buttons according to the event type's cadence
-            instantEventButton.visibility = if (eventType.cadence.showsInstant()) View.VISIBLE else View.GONE
-            startEventButton.visibility = if (eventType.cadence.showsTimed()) View.VISIBLE else View.GONE
+            // Fixed slots: instant on the left, timed on the right. A cadence without one of them
+            // leaves that slot empty rather than shifting the other, so rows line up.
+            instantEventButton.visibility = if (eventType.cadence.showsInstant()) View.VISIBLE else View.INVISIBLE
+            startEventButton.visibility = if (eventType.cadence.showsTimed()) View.VISIBLE else View.INVISIBLE
             stopEventButton.visibility = View.GONE
 
             // Get the selected instant event icon from preferences
@@ -369,8 +370,9 @@ class EventTypesTrackingAdapter(
             }
         }
 
+        /** Fixed slots: instant on the left, timed (start or stop) on the right; an unused slot stays as a gap. */
         private fun applyCadenceButtons(eventType: EventType, ongoingEvent: OngoingEvent?) {
-            instantEventButton.visibility = if (eventType.cadence.showsInstant()) View.VISIBLE else View.GONE
+            instantEventButton.visibility = if (eventType.cadence.showsInstant() && ongoingEvent == null) View.VISIBLE else View.INVISIBLE
 
             val app = itemView.context.applicationContext as CalWriteApplication
             instantEventButton.setIconResource(app.storagePreferences.getInstantEventIconResourceId(itemView.context))
@@ -382,7 +384,7 @@ class EventTypesTrackingAdapter(
                 stopEventButton.setOnClickListener { onStopEvent(ongoingEvent) }
             } else {
                 stopEventButton.visibility = View.GONE
-                startEventButton.visibility = if (eventType.cadence.showsTimed()) View.VISIBLE else View.GONE
+                startEventButton.visibility = if (eventType.cadence.showsTimed()) View.VISIBLE else View.INVISIBLE
                 startEventButton.setOnClickListener { onStartEvent(eventType) }
             }
         }
